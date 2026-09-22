@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#335cff" />
+  <title>Laboratório de Matrizes 2.2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-copy">
+      <p class="eyebrow">Álgebra Linear • estudo passo a passo</p>
+      <h1>Laboratório de Matrizes</h1>
+      <p>Pratique, confira e resolva determinantes e inversas com frações exatas.</p>
+    </div>
+    <button id="themeBtn" class="ghost compact-button" type="button">◐ Tema</button>
+  </header>
+
+  <main class="shell">
+    <section class="panel setup-panel">
+      <div class="section-head">
+        <div>
+          <h2>1. Matriz de entrada</h2>
+          <p>Use inteiros ou frações como <code>-3</code>, <code>1/2</code> e <code>-5/7</code>.</p>
+        </div>
+      </div>
+
+      <div class="dimension-grid">
+        <label>Linhas <input id="rows" type="number" min="1" max="6" value="3" inputmode="numeric" /></label>
+        <label>Colunas <input id="cols" type="number" min="1" max="6" value="3" inputmode="numeric" /></label>
+        <button id="resizeBtn" type="button">Criar matriz</button>
+        <button id="randomBtn" class="secondary" type="button">Aleatória</button>
+        <button id="clearBtn" class="ghost" type="button">Zerar</button>
+      </div>
+
+      <div class="quick-examples">
+        <span>Exemplos:</span>
+        <button id="example2Btn" class="chip" type="button">2×2</button>
+        <button id="example3Btn" class="chip" type="button">3×3 • Sarrus</button>
+        <button id="example4Btn" class="chip" type="button">4×4 • Laplace</button>
+      </div>
+
+      <details class="import-card">
+        <summary>Importar matriz por JSON</summary>
+        <div class="import-body">
+          <label for="jsonInput">Cole uma matriz JSON</label>
+          <textarea id="jsonInput" rows="5" spellcheck="false" placeholder='[[1, 2], [3, 4]]'></textarea>
+          <div class="import-actions">
+            <button id="loadJsonBtn" class="secondary" type="button">Carregar texto</button>
+            <label class="file-button" for="jsonFile">Importar arquivo .json</label>
+            <input id="jsonFile" type="file" accept=".json,application/json" hidden />
+          </div>
+        </div>
+      </details>
+
+      <div id="matrixEditor" class="matrix-scroll" aria-label="Editor da matriz"></div>
+      <div class="toolbar">
+        <button id="startBtn" type="button">Usar esta matriz</button>
+        <button id="copyEditorBtn" class="secondary" type="button">⧉ Copiar JSON</button>
+        <span id="validationMsg" class="inline-msg" role="status"></span>
+      </div>
+    </section>
+
+    <section class="panel workspace-shell">
+      <div class="workspace-top">
+        <div class="segmented" aria-label="Modo principal">
+          <button class="workspace-mode active" data-workspace="study" type="button">ESTUDAR</button>
+          <button class="workspace-mode" data-workspace="solve" type="button">RESOLVER</button>
+        </div>
+        <label class="problem-select">Tipo
+          <select id="problemType">
+            <option value="determinant">Determinante</option>
+            <option value="inverse">Inversa</option>
+          </select>
+        </label>
+      </div>
+      <p id="workspaceDescription" class="workspace-description"></p>
+    </section>
+
+    <section id="studyPanel" class="panel">
+      <div class="section-head">
+        <div>
+          <h2 id="studyTitle">Estudar determinante</h2>
+          <p id="studySubtitle">Faça suas próprias operações e acompanhe cada transformação.</p>
+        </div>
+        <span id="opCount" class="badge">0 operações</span>
+      </div>
+
+      <div id="studyMatrix" class="matrix-scroll matrix-stage"></div>
+
+      <div id="detStudyStats" class="swap-panel">
+        <div><span>Trocas de linhas</span><strong id="rowSwapCount">0</strong></div>
+        <div><span>Trocas de colunas</span><strong id="colSwapCount">0</strong></div>
+        <div><span>Total</span><strong id="swapTotal">0</strong></div>
+        <div><span>Sinal atual</span><strong id="swapSign">+1</strong></div>
+      </div>
+
+      <div id="inverseStudyActions" class="context-actions hidden">
+        <button id="resetAugBtn" class="secondary" type="button">Recriar [A | I]</button>
+        <button id="verifyInverseBtn" class="secondary" type="button">Verificar A × A⁻¹</button>
+        <div id="inverseStatus" class="feedback info">Transforme o lado esquerdo em I.</div>
+      </div>
+
+      <div class="operation-card">
+        <div class="mode-switch">
+          <button class="operation-mode active" data-operation-mode="managed" type="button">Conferir operação</button>
+          <button class="operation-mode" data-operation-mode="manual" type="button">Operação manual</button>
+        </div>
+
+        <div class="op-grid">
+          <label>Operação
+            <select id="opType">
+              <option value="swap">Trocar linhas</option>
+              <option value="swapCol">Trocar colunas</option>
+              <option value="scale">Multiplicar linha</option>
+              <option value="add">Somar múltiplo de outra linha</option>
+            </select>
+          </label>
+          <label id="rowAWrap">Linha da operação <select id="rowA"></select></label>
+          <label id="rowBWrap">Linha do pivô <select id="rowB"></select></label>
+          <label id="kWrap">Multiplicador <input id="kInput" value="-1" inputmode="text" autocomplete="off" /></label>
+        </div>
+
+        <p id="operationPreview" class="formula"></p>
+
+        <div id="manualEditorWrap" class="manual-wrap hidden">
+          <div class="manual-head">
+            <div>
+              <strong>Seu resultado</strong>
+              <p>Campos alterados aparecem antes da conferência. Azul significa apenas “alterado”.</p>
+            </div>
+          </div>
+          <div id="manualEditor" class="matrix-scroll"></div>
+          <div id="changedSummary" class="small-note"></div>
+        </div>
+
+        <div class="toolbar operation-actions">
+          <button id="applyBtn" type="button">Aplicar operação</button>
+          <button id="checkBtn" class="secondary hidden" type="button">Conferir meu passo</button>
+          <button id="undoBtn" class="ghost" type="button">↶ Desfazer</button>
+          <button id="redoBtn" class="ghost" type="button">↷ Refazer</button>
+          <button id="restartBtn" class="ghost" type="button">Reiniciar</button>
+          <button id="hintBtn" class="ghost" type="button">💡 Dica</button>
+        </div>
+        <div id="feedback" class="feedback info" role="status">Escolha uma operação para começar.</div>
+      </div>
+
+      <section id="detStudyTools" class="study-tool-card">
+        <div class="section-head compact-head">
+          <div>
+            <h3>Continuar o determinante</h3>
+            <p>Use Laplace para reduzir o problema até 3×3 e então Sarrus.</p>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button id="startLaplaceStudyBtn" type="button">Continuar com Expansão de Laplace</button>
+          <button id="suggestLaplaceBtn" class="secondary" type="button">Sugerir melhor linha/coluna</button>
+          <button id="studySarrusBtn" class="secondary" type="button">Usar Sarrus nesta 3×3</button>
+        </div>
+        <div id="laplaceSuggestion" class="small-note"></div>
+        <div id="laplaceStudy" class="det-visuals"></div>
+      </section>
+
+      <section class="history-card">
+        <div class="section-head compact-head">
+          <div>
+            <h3>Histórico da sessão</h3>
+            <p>Cada passo armazena a matriz anterior, a nova matriz e a operação estruturada.</p>
+          </div>
+          <div class="toolbar compact-toolbar">
+            <button id="copyHistoryBtn" class="secondary" type="button">⧉ Copiar histórico JSON</button>
+            <button id="downloadSessionBtn" class="ghost" type="button">↓ Exportar sessão JSON</button>
+          </div>
+        </div>
+        <div id="history"></div>
+      </section>
+    </section>
+
+    <section id="solvePanel" class="panel hidden">
+      <div class="section-head">
+        <div>
+          <h2 id="solveTitle">Resolver determinante</h2>
+          <p>O sistema mostra uma resolução completa para comparação.</p>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <button id="useStudyMatrixBtn" class="secondary" type="button">Usar matriz atual do estudo</button>
+        <span id="solveSourceMsg" class="small-note"></span>
+      </div>
+      <div id="solveMatrix" class="matrix-scroll matrix-stage"></div>
+
+      <div id="solveDetControls" class="solve-controls">
+        <label>Método
+          <select id="solveDetMethod">
+            <option value="auto">Automático</option>
+            <option value="sarrus">Regra de Sarrus</option>
+            <option value="laplace">Expansão de Laplace</option>
+            <option value="gauss">Eliminação Gaussiana</option>
+          </select>
+        </label>
+        <div id="solveLaplaceControls" class="laplace-controls hidden">
+          <label>Expandir por
+            <select id="solveLaplaceAxis"><option value="row">Linha</option><option value="col">Coluna</option></select>
+          </label>
+          <label>Índice <select id="solveLaplaceIndex"></select></label>
+        </div>
+        <button id="solveDetBtn" type="button">Resolver determinante</button>
+      </div>
+
+      <div id="solveInverseControls" class="solve-controls hidden">
+        <button id="solveInverseBtn" type="button">Resolver inversa por Gauss-Jordan</button>
+      </div>
+
+      <div id="solveOutput"></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <footer>Laboratório de Matrizes 2.2 • cálculos racionais exatos no navegador</footer>
+
+  <script src="math.js"></script>
+  <script src="history.js"></script>
+  <script src="ui.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
