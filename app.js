@@ -195,14 +195,17 @@ function refreshStudy() {
   $('#detStudyTools').classList.toggle('hidden', inverse);
   $('#inverseStudyActions').classList.toggle('hidden', !inverse);
   $('#hintBtn').classList.toggle('hidden', !inverse);
-  $('#opCount').textContent = `${Math.max(0, session.history.length - 1)} operações`;
+  $('#opCount').textContent = `${Math.max(0, H.getTimeline(session).length - 1)} etapas`;
 
   refreshOperationSelectors();
   renderHistory();
   updateSwapPanel();
   updateInverseStatus();
   if (state.operationMode === 'manual') prepareManualEditor();
-  if (!inverse) renderLaplaceStudy();
+  if (!inverse) {
+    refreshLaplaceQuickControls();
+    renderLaplaceStudy();
+  }
 }
 
 function updateSwapPanel() {
@@ -258,10 +261,36 @@ function refreshOperationSelectors() {
 function updateOperationControls() {
   const type = $('#opType').value;
   const columns = type === 'swapCol';
+  const isSwap = type === 'swap' || type === 'swapCol';
+  const a = $('#rowA');
+  const b = $('#rowB');
+
   $('#rowAWrap').childNodes[0].nodeValue = columns ? 'Coluna da operação ' : 'Linha da operação ';
-  $('#rowBWrap').childNodes[0].nodeValue = columns ? 'Coluna de troca ' : 'Linha do pivô ';
+  $('#rowBWrap').childNodes[0].nodeValue = columns
+    ? 'Coluna de troca '
+    : type === 'swap' ? 'Linha de troca ' : 'Linha do pivô ';
   $('#rowBWrap').classList.toggle('hidden', type === 'scale');
-  $('#kWrap').classList.toggle('hidden', ['swap', 'swapCol'].includes(type));
+  $('#kWrap').classList.toggle('hidden', isSwap);
+
+  [...b.options].forEach(option => {
+    option.disabled = isSwap && option.value === a.value;
+  });
+  if (isSwap && b.value === a.value) {
+    const alternative = [...b.options].find(option => !option.disabled);
+    if (alternative) b.value = alternative.value;
+  }
+
+  const invalidSwap = isSwap && (a.value === b.value || a.options.length < 2);
+  $('#applyBtn').disabled = invalidSwap;
+  $('#checkBtn').disabled = invalidSwap;
+
+  if (invalidSwap) {
+    $('#operationPreview').textContent = columns
+      ? 'Escolha duas colunas diferentes para realizar a troca.'
+      : 'Escolha duas linhas diferentes para realizar a troca.';
+    return;
+  }
+
   try {
     $('#operationPreview').textContent = M.operationLabel(readOperation());
   } catch {
@@ -389,25 +418,68 @@ function renderHistory() {
   const target = $('#history');
   target.innerHTML = '';
   if (!session) return;
-  session.history.forEach(step => {
+  $('#opCount').textContent = `${Math.max(0, H.getTimeline(session).length - 1)} etapas`;
+
+  H.getTimeline(session).forEach((entry, timelineIndex) => {
     const card = document.createElement('article');
-    card.className = 'history-step';
-    const title = document.createElement('div');
-    title.className = 'history-step-title';
-    title.textContent = step.step === 0 ? 'Passo 0 — Matriz inicial' : `Passo ${step.step} — ${step.description}`;
-    card.appendChild(title);
-    if (step.operation) {
-      const code = document.createElement('code');
-      code.textContent = JSON.stringify(step.operation);
-      card.appendChild(code);
+    card.className = `history-step${entry.kind === 'analysisEvent' ? ' analysis-event' : ''}`;
+
+    if (entry.kind === 'matrixStep') {
+      const step = entry.item;
+      const title = document.createElement('div');
+      title.className = 'history-step-title';
+      title.textContent = step.step === 0
+        ? 'Passo 0 — Matriz inicial'
+        : `Passo ${step.step} — ${step.description}`;
+      card.appendChild(title);
+
+      if (step.operation) {
+        const summary = document.createElement('div');
+        summary.className = 'history-meta';
+        summary.textContent = step.description;
+        card.appendChild(summary);
+      }
+
+      const holder = document.createElement('div');
+      card.appendChild(holder);
+      UI.renderMatrix(holder, step.after, {
+        divider: session.augmentedAt,
+        title: `Matriz do passo ${step.step}`,
+        compact: true
+      });
+    } else {
+      const event = entry.item;
+      const title = document.createElement('div');
+      title.className = 'history-step-title';
+      title.textContent = `Análise ${timelineIndex} — ${event.description}`;
+      card.appendChild(title);
+
+      const meta = document.createElement('div');
+      meta.className = 'history-meta';
+      if (event.type === 'laplaceExpansion') {
+        const axis = event.metadata.axis === 'row' ? 'linha' : 'coluna';
+        meta.textContent = `Expansão pela ${axis} ${Number(event.metadata.index) + 1}. ${event.metadata.expression || ''}`.trim();
+      } else if (event.type === 'sarrusResolution') {
+        meta.textContent = `Resultado do menor: ${event.metadata.result}.`;
+      } else if (event.type === 'laplaceResult') {
+        meta.textContent = `det(matriz atual) = ${event.metadata.currentDeterminant}; det(matriz inicial) = ${event.metadata.originalDeterminant}.`;
+      } else if (event.type === 'directDeterminant') {
+        meta.textContent = `Resultado: ${event.metadata.result}.`;
+      } else {
+        meta.textContent = event.description;
+      }
+      card.appendChild(meta);
+
+      if (event.matrix) {
+        const holder = document.createElement('div');
+        card.appendChild(holder);
+        UI.renderMatrix(holder, event.matrix, {
+          title: event.metadata.label || 'Matriz analisada',
+          compact: true
+        });
+      }
     }
-    const holder = document.createElement('div');
-    card.appendChild(holder);
-    UI.renderMatrix(holder, step.after, {
-      divider: session.augmentedAt,
-      title: `Matriz do passo ${step.step}`,
-      compact: true
-    });
+
     target.appendChild(card);
   });
 }
@@ -457,48 +529,139 @@ function showHint() {
 // -----------------------------------------------------------------------------
 
 function newLaplaceFrame(matrix, label, parentFrameIndex = null, parentTermIndex = null) {
+  const recommendation = M.recommendLaplaceAxis(matrix);
   return {
     matrix: M.cloneMatrix(matrix),
     label,
-    axis: 'row',
-    index: 0,
+    axis: recommendation.axis,
+    index: recommendation.index,
     terms: null,
     resolvedValue: null,
     parentFrameIndex,
     parentTermIndex,
-    sarrusResult: null
+    sarrusResult: null,
+    loggedFinal: false
   };
-}
-
-function startLaplaceStudy() {
-  const session = state.sessions.determinant;
-  if (!session || !M.isSquare(session.currentMatrix)) {
-    $('#laplaceStudy').innerHTML = '<div class="feedback error">Laplace exige uma matriz quadrada.</div>';
-    return;
-  }
-  if (session.currentMatrix.length < 2) return;
-  state.laplace.frames = [newLaplaceFrame(session.currentMatrix, 'Matriz atual')];
-  renderLaplaceStudy();
 }
 
 function currentLaplaceFrame() {
   return state.laplace.frames.at(-1) || null;
 }
 
+function rootLaplaceFrame() {
+  return state.laplace.frames[0] || null;
+}
+
+function ensureLaplaceRoot() {
+  const session = state.sessions.determinant;
+  if (!session || !M.isSquare(session.currentMatrix)) return null;
+  if (!state.laplace.frames.length) {
+    state.laplace.frames = [newLaplaceFrame(session.currentMatrix, 'Matriz atual')];
+  }
+  return currentLaplaceFrame();
+}
+
+function laplaceTermCoefficient(term) {
+  return term.element.mul(new M.Fraction(term.sign));
+}
+
+function laplaceExpressionText(frame) {
+  if (!frame?.terms?.length) return '';
+  const parts = frame.terms.map((term, index) => {
+    const coefficient = laplaceTermCoefficient(term);
+    const negative = coefficient.n < 0;
+    const abs = coefficient.abs().toString();
+    const minorLabel = `M${term.row + 1}${term.col + 1}`;
+    const body = term.status === 'resolved'
+      ? `${abs}·${term.minorResult.toString()}`
+      : `${abs}·det(${minorLabel})`;
+    if (index === 0) return `${negative ? '−' : ''}${body}`;
+    return `${negative ? '−' : '+'} ${body}`;
+  });
+  return `det(${frame.label}) = ${parts.join(' ')}`;
+}
+
+function laplaceExpressionHTML(frame) {
+  if (!frame?.terms?.length) return '';
+  const parts = frame.terms.map((term, index) => {
+    const coefficient = laplaceTermCoefficient(term);
+    const negative = coefficient.n < 0;
+    const abs = coefficient.abs();
+    const minorLabel = `M${term.row + 1}${term.col + 1}`;
+    const body = term.status === 'resolved'
+      ? `${UI.fractionHTML(abs)} × ${UI.fractionHTML(term.minorResult)}`
+      : `${UI.fractionHTML(abs)} × det(${minorLabel})`;
+    const sign = index === 0 ? (negative ? '− ' : '') : (negative ? ' − ' : ' + ');
+    return `${sign}${body}`;
+  });
+  return `<strong>det(${UI.escapeHTML(frame.label)})</strong> = ${parts.join('')}`;
+}
+
+function pathFactorToFrame(frameIndex) {
+  let factor = new M.Fraction(1);
+  let index = frameIndex;
+  while (index > 0) {
+    const frame = state.laplace.frames[index];
+    const parent = state.laplace.frames[frame.parentFrameIndex];
+    const term = parent?.terms?.[frame.parentTermIndex];
+    if (!term) break;
+    factor = factor.mul(laplaceTermCoefficient(term));
+    index = frame.parentFrameIndex;
+  }
+  return factor;
+}
+
 function computeFrameValue(frame) {
-  if (!frame.terms || frame.terms.some(term => term.status === 'pending')) return null;
-  return frame.terms.reduce((sum, term) => sum.add(term.contribution || new M.Fraction(0)), new M.Fraction(0));
+  if (!frame?.terms || frame.terms.some(term => term.status === 'pending')) return null;
+  return frame.terms.reduce(
+    (sum, term) => sum.add(term.contribution || new M.Fraction(0)),
+    new M.Fraction(0)
+  );
+}
+
+function finalizeLaplaceRoot() {
+  const session = state.sessions.determinant;
+  const root = rootLaplaceFrame();
+  if (!session || !root?.resolvedValue || root.loggedFinal) return;
+
+  const factor = H.determinantTransformFactor(session);
+  const stats = H.swapStats(session);
+  const original = root.resolvedValue.div(factor);
+  root.loggedFinal = true;
+  root.originalDeterminant = original;
+
+  H.logAnalysisEvent(session, {
+    type: 'laplaceResult',
+    description: `Laplace concluído: det(A original) = ${original.toString()}`,
+    matrix: root.matrix,
+    metadata: {
+      currentDeterminant: root.resolvedValue,
+      transformFactor: factor,
+      originalDeterminant: original,
+      rowSwaps: stats.rowSwaps,
+      columnSwaps: stats.columnSwaps,
+      swapSign: stats.sign
+    }
+  });
 }
 
 function propagateResolvedFrame(frameIndex) {
   const frame = state.laplace.frames[frameIndex];
-  if (!frame || frame.resolvedValue == null || frame.parentFrameIndex == null) return;
+  if (!frame || frame.resolvedValue == null) return;
+
+  if (frame.parentFrameIndex == null) {
+    finalizeLaplaceRoot();
+    return;
+  }
+
   const parent = state.laplace.frames[frame.parentFrameIndex];
   const term = parent?.terms?.[frame.parentTermIndex];
   if (!term) return;
+
   term.minorResult = M.Fraction.from(frame.resolvedValue);
-  term.contribution = term.element.mul(new M.Fraction(term.sign)).mul(term.minorResult);
+  term.contribution = laplaceTermCoefficient(term).mul(term.minorResult);
   term.status = 'resolved';
+
   const parentValue = computeFrameValue(parent);
   if (parentValue) {
     parent.resolvedValue = parentValue;
@@ -506,43 +669,98 @@ function propagateResolvedFrame(frameIndex) {
   }
 }
 
+function collapseResolvedLaplaceFrames() {
+  while (state.laplace.frames.length > 1) {
+    const frame = currentLaplaceFrame();
+    if (frame?.resolvedValue == null) break;
+    state.laplace.frames.pop();
+  }
+}
+
+function logLaplaceExpansion(frame) {
+  const session = state.sessions.determinant;
+  if (!session) return;
+  const axisLabel = frame.axis === 'row' ? 'linha' : 'coluna';
+  H.logAnalysisEvent(session, {
+    type: 'laplaceExpansion',
+    description: `Expansão de Laplace pela ${axisLabel} ${frame.index + 1}`,
+    matrix: frame.matrix,
+    metadata: {
+      label: frame.label,
+      axis: frame.axis,
+      index: frame.index,
+      expression: laplaceExpressionText(frame),
+      pathFactor: pathFactorToFrame(state.laplace.frames.length - 1),
+      terms: frame.terms.map(term => ({
+        row: term.row + 1,
+        column: term.col + 1,
+        element: term.element,
+        cofactorSign: term.sign,
+        coefficient: laplaceTermCoefficient(term),
+        minorLabel: `M${term.row + 1}${term.col + 1}`,
+        minor: term.minor
+      }))
+    }
+  });
+}
+
 function expandLaplaceFrame(axis, index, { autoDescend = true } = {}) {
-  const frame = currentLaplaceFrame();
+  const frame = ensureLaplaceRoot();
   if (!frame) return;
+
   frame.axis = axis;
   frame.index = index;
+  frame.sarrusResult = null;
+  frame.resolvedValue = null;
+  frame.loggedFinal = false;
+
   const expansion = M.laplaceExpansion(frame.matrix, axis, index);
   frame.terms = expansion.terms.map(term => {
     const zero = term.element.isZero();
     const easy = term.minor.length <= 2;
-    const minorResult = zero ? new M.Fraction(0) : easy
-      ? (term.minor.length === 1 ? term.minor[0][0] : M.determinant2x2(term.minor))
-      : null;
+    const minorResult = zero
+      ? new M.Fraction(0)
+      : easy
+        ? (term.minor.length === 1 ? term.minor[0][0] : M.determinant2x2(term.minor))
+        : null;
+    const coefficient = term.element.mul(new M.Fraction(term.sign));
     return {
       ...term,
       status: zero || easy ? 'resolved' : 'pending',
       minorResult,
-      contribution: zero ? new M.Fraction(0) : easy
-        ? term.element.mul(new M.Fraction(term.sign)).mul(minorResult)
-        : null
+      contribution: zero
+        ? new M.Fraction(0)
+        : easy ? coefficient.mul(minorResult) : null
     };
   });
+
+  logLaplaceExpansion(frame);
+
   const value = computeFrameValue(frame);
   if (value) {
     frame.resolvedValue = value;
     propagateResolvedFrame(state.laplace.frames.length - 1);
+    collapseResolvedLaplaceFrames();
+    refreshLaplaceQuickControls();
+    renderLaplaceStudy();
+    renderHistory();
+    return;
   }
 
   const pendingNonZero = frame.terms
     .map((term, termIndex) => ({ term, termIndex }))
     .filter(item => item.term.status === 'pending' && !item.term.element.isZero());
+
   if (autoDescend && pendingNonZero.length === 1 && frame.matrix.length > 3) {
-    const { termIndex } = pendingNonZero[0];
-    openLaplaceTerm(termIndex, true);
-    UI.showToast('Apenas um termo não nulo: avançamos para o menor correspondente.');
+    openLaplaceTerm(pendingNonZero[0].termIndex, true);
+    UI.showToast('Laplace aplicado: único termo não nulo, menor aberto automaticamente.');
+    renderHistory();
     return;
   }
+
+  refreshLaplaceQuickControls();
   renderLaplaceStudy();
+  renderHistory();
 }
 
 function openLaplaceTerm(termIndex, automatic = false) {
@@ -550,30 +768,86 @@ function openLaplaceTerm(termIndex, automatic = false) {
   const parent = state.laplace.frames[parentIndex];
   const term = parent?.terms?.[termIndex];
   if (!term || term.status !== 'pending') return;
+
   const label = `M${term.row + 1}${term.col + 1}`;
   state.laplace.frames.push(newLaplaceFrame(term.minor, label, parentIndex, termIndex));
+  refreshLaplaceQuickControls();
   renderLaplaceStudy();
-  if (!automatic) UI.showToast(`${label} aberto para continuar a resolução.`);
+  if (!automatic) UI.showToast(`${label} aberto. Continue a conta a partir deste menor.`);
 }
 
 function resolveLaplaceFrameWithSarrus() {
-  const frame = currentLaplaceFrame();
+  const frame = ensureLaplaceRoot();
   if (!frame || frame.matrix.length !== 3) return;
+
   frame.sarrusResult = M.determinantSarrus(frame.matrix);
   frame.resolvedValue = frame.sarrusResult.value;
+
+  H.logAnalysisEvent(state.sessions.determinant, {
+    type: 'sarrusResolution',
+    description: `${frame.label} resolvido por Sarrus`,
+    matrix: frame.matrix,
+    metadata: {
+      label: frame.label,
+      result: frame.resolvedValue,
+      pathFactor: pathFactorToFrame(state.laplace.frames.length - 1)
+    }
+  });
+
   propagateResolvedFrame(state.laplace.frames.length - 1);
+  collapseResolvedLaplaceFrames();
+  refreshLaplaceQuickControls();
   renderLaplaceStudy();
+  renderHistory();
+  UI.showToast('Sarrus concluído e resultado incorporado à conta de Laplace.');
 }
 
-function recommendLaplace() {
-  const frame = currentLaplaceFrame() || (state.sessions.determinant ? newLaplaceFrame(state.sessions.determinant.currentMatrix, 'Matriz atual') : null);
-  if (!frame || !M.isSquare(frame.matrix)) return;
-  if (!state.laplace.frames.length) state.laplace.frames = [frame];
-  const recommendation = M.recommendLaplaceAxis(frame.matrix);
-  frame.axis = recommendation.axis;
-  frame.index = recommendation.index;
-  $('#laplaceSuggestion').textContent = `Sugestão: ${recommendation.axis === 'row' ? 'Linha' : 'Coluna'} ${recommendation.index + 1}, com ${recommendation.zeros} zero(s).`;
-  renderLaplaceStudy();
+function refreshLaplaceQuickControls() {
+  const session = state.sessions.determinant;
+  const controls = $('#laplaceQuickControls');
+  if (!controls || !session || !M.isSquare(session.currentMatrix)) return;
+
+  const frame = currentLaplaceFrame();
+  const matrix = frame?.matrix || session.currentMatrix;
+  const size = matrix.length;
+  const recommendation = M.recommendLaplaceAxis(matrix);
+  const axisSelect = $('#laplaceQuickAxis');
+  const indexSelect = $('#laplaceQuickIndex');
+
+  if (!frame && axisSelect.dataset.userChoice !== 'true') axisSelect.value = recommendation.axis;
+  if (frame) axisSelect.value = frame.axis;
+
+  const axis = axisSelect.value;
+  const previousIndex = frame ? frame.index : Number(indexSelect.value || recommendation.index);
+  indexSelect.innerHTML = '';
+  for (let i = 0; i < size; i++) {
+    const option = document.createElement('option');
+    option.value = i;
+    option.textContent = `${axis === 'row' ? 'Linha' : 'Coluna'} ${i + 1}`;
+    indexSelect.appendChild(option);
+  }
+
+  const preferred = frame
+    ? frame.index
+    : axis === recommendation.axis ? recommendation.index : Math.min(previousIndex, size - 1);
+  indexSelect.value = String(Math.max(0, Math.min(size - 1, preferred)));
+
+  $('#applyLaplaceBtn').disabled = size < 2 || Boolean(frame?.resolvedValue);
+  $('#applyLaplaceBtn').textContent = size > 3 ? 'Reduzir por Laplace' : 'Aplicar Laplace';
+  $('#studySarrusBtn').disabled = size !== 3 || Boolean(frame?.resolvedValue);
+  $('#studySarrusBtn').classList.toggle('hidden', size !== 3);
+
+  $('#laplaceSuggestion').textContent = size > 2
+    ? `Sugestão: ${recommendation.axis === 'row' ? 'Linha' : 'Coluna'} ${recommendation.index + 1} (${recommendation.zeros} zero(s)). Você pode usar a sugestão ou escolher outra opção acima.`
+    : 'Matriz 2×2: o determinante é resolvido diretamente por ad − bc.';
+}
+
+function applyQuickLaplace() {
+  const frame = ensureLaplaceRoot();
+  if (!frame) return;
+  const axis = $('#laplaceQuickAxis').value;
+  const index = Number($('#laplaceQuickIndex').value || 0);
+  expandLaplaceFrame(axis, index);
 }
 
 function sarrusHTML(matrix, label) {
@@ -598,68 +872,94 @@ function determinantCorrectionHTML(currentDeterminant) {
   const factor = H.determinantTransformFactor(session);
   const original = M.Fraction.from(currentDeterminant).div(factor);
   const swapFactor = stats.sign > 0 ? '+1' : '−1';
-  return `<div class="det-correction">
-    <h4>Fechamento da sessão</h4>
-    <p>Trocas: ${stats.rowSwaps} de linha + ${stats.columnSwaps} de coluna = ${stats.total}. Fator de sinal das trocas: <strong>${swapFactor}</strong>.</p>
-    <p>Fator acumulado de todas as operações que alteram o determinante: <strong>${UI.fractionHTML(factor)}</strong>.</p>
-    <p>det(matriz atual) = ${UI.fractionHTML(currentDeterminant)} ⇒ det(matriz inicial) = ${UI.fractionHTML(currentDeterminant)} ÷ ${UI.fractionHTML(factor)} = <strong>${UI.fractionHTML(original)}</strong>.</p>
+  return `<div class="det-correction final-determinant">
+    <div class="final-kicker">Resultado final</div>
+    <h4>det(A original) = ${UI.fractionHTML(original)}</h4>
+    <p>Laplace/Sarrus encontrou <strong>det(matriz atual) = ${UI.fractionHTML(currentDeterminant)}</strong>.</p>
+    <p>Durante as operações houve ${stats.rowSwaps} troca(s) de linha e ${stats.columnSwaps} troca(s) de coluna. O <strong>sinal atual das trocas é ${swapFactor}</strong>.</p>
+    <p>Fator total das operações que alteram o determinante: <strong>${UI.fractionHTML(factor)}</strong>.</p>
+    <p class="formula">det(A original) = ${UI.fractionHTML(currentDeterminant)} ÷ ${UI.fractionHTML(factor)} = ${UI.fractionHTML(original)}</p>
   </div>`;
+}
+
+function rootExpressionHTML() {
+  const root = rootLaplaceFrame();
+  if (!root?.terms) return '';
+  return `<div class="laplace-running-equation"><span>Conta principal</span><div>${laplaceExpressionHTML(root)}</div>${root.resolvedValue ? `<strong>det(matriz atual) = ${UI.fractionHTML(root.resolvedValue)}</strong>` : ''}</div>`;
 }
 
 function renderLaplaceStudy() {
   const host = $('#laplaceStudy');
+  if (!host) return;
   host.innerHTML = '';
+
   const frame = currentLaplaceFrame();
-  const session = state.sessions.determinant;
-  if (!frame) {
-    $('#studySarrusBtn').disabled = !session || session.currentMatrix.length !== 3;
-    return;
-  }
+  if (!frame) return;
 
   const frameIndex = state.laplace.frames.length - 1;
-  const breadcrumb = state.laplace.frames.map((item, index) => `<span class="breadcrumb-item${index === frameIndex ? ' active' : ''}">${UI.escapeHTML(item.label)} • ${item.matrix.length}×${item.matrix.length}</span>`).join('');
-  const recommendation = M.recommendLaplaceAxis(frame.matrix);
-  const options = Array.from({ length: frame.matrix.length }, (_, index) => `<option value="${index}" ${index === frame.index ? 'selected' : ''}>${frame.axis === 'row' ? 'Linha' : 'Coluna'} ${index + 1}</option>`).join('');
+  const root = rootLaplaceFrame();
+  const pathFactor = pathFactorToFrame(frameIndex);
+  const breadcrumb = state.laplace.frames
+    .map((item, index) => `<span class="breadcrumb-item${index === frameIndex ? ' active' : ''}">${UI.escapeHTML(item.label)} • ${item.matrix.length}×${item.matrix.length}</span>`)
+    .join('<span class="breadcrumb-arrow">›</span>');
 
   let body = '';
   if (frame.sarrusResult) {
-    body = `${sarrusHTML(frame.matrix, frame.label)}<div class="feedback success">✓ ${frame.label} resolvido por Sarrus: ${UI.fractionHTML(frame.resolvedValue)}.</div>`;
+    body = sarrusHTML(frame.matrix, frame.label);
   } else if (frame.matrix.length === 2) {
     const value = M.determinant2x2(frame.matrix);
-    frame.resolvedValue = value;
-    propagateResolvedFrame(frameIndex);
+    if (frame.resolvedValue == null) {
+      frame.resolvedValue = value;
+      H.logAnalysisEvent(state.sessions.determinant, {
+        type: 'directDeterminant',
+        description: `${frame.label} resolvido como determinante 2×2`,
+        matrix: frame.matrix,
+        metadata: { label: frame.label, result: value, pathFactor }
+      });
+      propagateResolvedFrame(frameIndex);
+      collapseResolvedLaplaceFrames();
+      refreshLaplaceQuickControls();
+      renderHistory();
+      return renderLaplaceStudy();
+    }
     body = `<div class="method-card"><h3>${UI.escapeHTML(frame.label)} — 2×2</h3>${UI.matrixHTML(frame.matrix, { title: frame.label })}<div class="result-box">ad − bc = <strong>${UI.fractionHTML(value)}</strong></div></div>`;
-  } else {
-    const terms = frame.terms ? frame.terms.map((term, termIndex) => {
-      const sign = term.sign > 0 ? '+' : '−';
-      const minorLabel = `M${term.row + 1}${term.col + 1}`;
-      const stateLabel = term.element.isZero() ? 'Termo zero' : term.status === 'resolved' ? `✓ ${minorLabel} = ${UI.fractionHTML(term.minorResult)}` : `○ ${minorLabel} pendente`;
-      return `<article class="laplace-term${term.element.isZero() ? ' zero-term' : ''}">
-        <h4>${sign} ${UI.fractionHTML(term.element)} · det(${minorLabel})</h4>
-        ${UI.matrixHTML(term.minor, { compact: true, title: minorLabel })}
-        <p class="term-status">${stateLabel}</p>
-        ${term.contribution ? `<div><strong>Contribuição:</strong> ${UI.fractionHTML(term.contribution)}</div>` : ''}
-        ${term.status === 'pending' ? `<button class="secondary" type="button" data-laplace-action="open" data-term="${termIndex}">Continuar com este menor</button>` : ''}
-      </article>`;
-    }).join('') : '<p class="small-note">Escolha a linha ou coluna e clique em “Expandir agora”.</p>';
-
-    body = `<div class="method-card">
-      <div class="method-header"><div><h3>Expansão de Laplace — ${UI.escapeHTML(frame.label)}</h3><p>Escolha uma linha/coluna. O sistema mantém todos os termos pendentes enquanto você resolve cada menor.</p></div></div>
+  } else if (!frame.terms) {
+    body = `<div class="laplace-focus-card">
+      <div class="focus-copy"><span class="focus-label">Matriz em foco</span><h3>${UI.escapeHTML(frame.label)} • ${frame.matrix.length}×${frame.matrix.length}</h3>${frameIndex > 0 ? `<p>Este menor entra na conta principal com fator acumulado <strong>${UI.fractionHTML(pathFactor)}</strong>.</p>` : '<p>Escolha a linha/coluna acima e aplique Laplace em um único passo.</p>'}</div>
       ${UI.matrixHTML(frame.matrix, { title: frame.label })}
-      <div class="laplace-picker">
-        <label>Expandir por <select id="laplaceStudyAxis"><option value="row" ${frame.axis === 'row' ? 'selected' : ''}>Linha</option><option value="col" ${frame.axis === 'col' ? 'selected' : ''}>Coluna</option></select></label>
-        <label>Índice <select id="laplaceStudyIndex">${options}</select></label>
-        <button type="button" data-laplace-action="expand">Expandir agora</button>
-        <button class="ghost" type="button" data-laplace-action="recommend">Sugestão: ${recommendation.axis === 'row' ? 'L' : 'C'}${recommendation.index + 1} (${recommendation.zeros} zeros)</button>
-        ${frame.matrix.length === 3 ? '<button class="secondary" type="button" data-laplace-action="sarrus">Resolver esta 3×3 com Sarrus</button>' : ''}
-      </div>
-      ${frame.terms ? `<div class="laplace-terms">${terms}</div>` : terms}
-      ${frame.resolvedValue ? `<div class="feedback success">✓ ${frame.label} resolvido: ${UI.fractionHTML(frame.resolvedValue)}</div>` : ''}
+    </div>`;
+  } else {
+    const nonZeroTerms = frame.terms
+      .map((term, termIndex) => ({ term, termIndex }))
+      .filter(({ term }) => !term.element.isZero());
+    const zeroCount = frame.terms.length - nonZeroTerms.length;
+    const terms = nonZeroTerms.map(({ term, termIndex }) => {
+      const minorLabel = `M${term.row + 1}${term.col + 1}`;
+      const coefficient = laplaceTermCoefficient(term);
+      const status = term.status === 'resolved'
+        ? `<span class="term-chip done">✓ ${minorLabel} = ${UI.fractionHTML(term.minorResult)}</span>`
+        : `<span class="term-chip pending">○ ${minorLabel} pendente</span>`;
+      return `<article class="laplace-term streamlined">
+        <div class="laplace-term-top"><h4>${UI.fractionHTML(coefficient)} × det(${minorLabel})</h4>${status}</div>
+        ${term.status === 'pending' ? UI.matrixHTML(term.minor, { compact: true, title: minorLabel }) : ''}
+        ${term.contribution ? `<div class="term-contribution">Contribuição: <strong>${UI.fractionHTML(coefficient)} × ${UI.fractionHTML(term.minorResult)} = ${UI.fractionHTML(term.contribution)}</strong></div>` : ''}
+        ${term.status === 'pending' ? `<button class="secondary" type="button" data-laplace-action="open" data-term="${termIndex}">Resolver ${minorLabel}</button>` : ''}
+      </article>`;
+    }).join('');
+
+    body = `<div class="method-card laplace-stage-card">
+      <div class="method-header"><div><h3>${UI.escapeHTML(frame.label)}</h3><p>${frame.axis === 'row' ? 'Linha' : 'Coluna'} ${frame.index + 1} expandida por Laplace.</p></div></div>
+      <div class="laplace-equation">${laplaceExpressionHTML(frame)}</div>
+      ${zeroCount ? `<div class="small-note">${zeroCount} termo(s) com coeficiente 0 foram eliminados automaticamente.</div>` : ''}
+      <div class="laplace-terms">${terms || '<div class="small-note">Nenhum termo pendente.</div>'}</div>
+      ${frame.resolvedValue ? `<div class="result-box">${UI.escapeHTML(frame.label)} = <strong>${UI.fractionHTML(frame.resolvedValue)}</strong></div>` : ''}
     </div>`;
   }
 
-  const correction = frameIndex === 0 && frame.resolvedValue ? determinantCorrectionHTML(frame.resolvedValue) : '';
-  host.innerHTML = `<div class="laplace-breadcrumb">${breadcrumb}</div>${body}${correction}${frameIndex > 0 ? '<div class="toolbar"><button class="ghost" type="button" data-laplace-action="back">← Voltar ao termo anterior</button></div>' : ''}`;
+  const rootEquation = rootExpressionHTML();
+  const correction = root?.resolvedValue ? determinantCorrectionHTML(root.resolvedValue) : '';
+  const back = frameIndex > 0 ? '<button class="ghost laplace-back" type="button" data-laplace-action="back">← Voltar sem resolver este menor</button>' : '';
+  host.innerHTML = `<div class="laplace-breadcrumb">${breadcrumb}</div>${rootEquation}${frameIndex > 0 ? `<div class="path-factor">Fator acumulado deste caminho: <strong>${UI.fractionHTML(pathFactor)}</strong></div>` : ''}${body}${correction}${back}`;
 }
 
 // -----------------------------------------------------------------------------
@@ -752,10 +1052,14 @@ function solveInverse() {
 function currentSessionJSON() {
   const session = currentSession();
   if (!session) throw new Error('Nenhuma sessão disponível.');
+  const root = session.problemType === 'determinant' ? rootLaplaceFrame() : null;
   return H.sessionToJSONString(session, {
     determinantStudy: session.problemType === 'determinant' ? {
       swaps: H.swapStats(session),
-      laplaceActive: state.laplace.frames.length > 0
+      transformFactor: H.determinantTransformFactor(session),
+      laplaceActive: state.laplace.frames.length > 0,
+      laplaceCurrentDeterminant: root?.resolvedValue || null,
+      originalDeterminant: root?.originalDeterminant || null
     } : undefined
   });
 }
@@ -822,48 +1126,34 @@ $('#hintBtn').addEventListener('click', showHint);
 $('#resetAugBtn').addEventListener('click', resetAugmented);
 $('#verifyInverseBtn').addEventListener('click', verifyInverse);
 
-$('#startLaplaceStudyBtn').addEventListener('click', startLaplaceStudy);
-$('#suggestLaplaceBtn').addEventListener('click', recommendLaplace);
-$('#studySarrusBtn').addEventListener('click', () => {
-  const session = state.sessions.determinant;
-  if (!session || session.currentMatrix.length !== 3 || !M.isSquare(session.currentMatrix)) return;
-  state.laplace.frames = [newLaplaceFrame(session.currentMatrix, 'Matriz atual')];
-  resolveLaplaceFrameWithSarrus();
-});
-$('#laplaceStudy').addEventListener('change', event => {
+$('#laplaceQuickAxis').addEventListener('change', () => {
+  $('#laplaceQuickAxis').dataset.userChoice = 'true';
   const frame = currentLaplaceFrame();
-  if (!frame) return;
-  if (event.target.id === 'laplaceStudyAxis') {
-    frame.axis = event.target.value;
+  if (frame && frame.resolvedValue == null) {
+    frame.axis = $('#laplaceQuickAxis').value;
     frame.index = 0;
-    frame.terms = null;
-    renderLaplaceStudy();
   }
-  if (event.target.id === 'laplaceStudyIndex') {
-    frame.index = Number(event.target.value);
-    expandLaplaceFrame(frame.axis, frame.index);
-  }
+  refreshLaplaceQuickControls();
+});
+$('#laplaceQuickIndex').addEventListener('change', () => {
+  const frame = currentLaplaceFrame();
+  if (frame && frame.resolvedValue == null) frame.index = Number($('#laplaceQuickIndex').value || 0);
+});
+$('#applyLaplaceBtn').addEventListener('click', applyQuickLaplace);
+$('#studySarrusBtn').addEventListener('click', () => {
+  const frame = ensureLaplaceRoot();
+  if (!frame || frame.matrix.length !== 3) return;
+  resolveLaplaceFrameWithSarrus();
 });
 $('#laplaceStudy').addEventListener('click', event => {
   const button = event.target.closest('[data-laplace-action]');
   if (!button) return;
   const action = button.dataset.laplaceAction;
-  if (action === 'expand') {
-    const frame = currentLaplaceFrame();
-    expandLaplaceFrame(frame.axis, frame.index);
-  } else if (action === 'recommend') {
-    const frame = currentLaplaceFrame();
-    const best = M.recommendLaplaceAxis(frame.matrix);
-    frame.axis = best.axis;
-    frame.index = best.index;
-    frame.terms = null;
-    renderLaplaceStudy();
-  } else if (action === 'open') {
+  if (action === 'open') {
     openLaplaceTerm(Number(button.dataset.term));
-  } else if (action === 'sarrus') {
-    resolveLaplaceFrameWithSarrus();
   } else if (action === 'back') {
-    state.laplace.frames.pop();
+    if (state.laplace.frames.length > 1) state.laplace.frames.pop();
+    refreshLaplaceQuickControls();
     renderLaplaceStudy();
   }
 });

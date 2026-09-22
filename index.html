@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#335cff" />
-  <title>Laboratório de Matrizes 2.2</title>
+  <title>Laboratório de Matrizes 2.3</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -149,14 +149,23 @@
       <section id="detStudyTools" class="study-tool-card">
         <div class="section-head compact-head">
           <div>
-            <h3>Continuar o determinante</h3>
-            <p>Use Laplace para reduzir o problema até 3×3 e então Sarrus.</p>
+            <h3>Laplace — continuar a mesma conta</h3>
+            <p>Escolha uma linha ou coluna e reduza diretamente. O coeficiente e o sinal ficam acumulados até o resultado final.</p>
           </div>
         </div>
-        <div class="toolbar">
-          <button id="startLaplaceStudyBtn" type="button">Continuar com Expansão de Laplace</button>
-          <button id="suggestLaplaceBtn" class="secondary" type="button">Sugerir melhor linha/coluna</button>
-          <button id="studySarrusBtn" class="secondary" type="button">Usar Sarrus nesta 3×3</button>
+
+        <div id="laplaceQuickControls" class="laplace-quick-controls">
+          <label>Expandir por
+            <select id="laplaceQuickAxis">
+              <option value="row">Linha</option>
+              <option value="col">Coluna</option>
+            </select>
+          </label>
+          <label>Escolha
+            <select id="laplaceQuickIndex"></select>
+          </label>
+          <button id="applyLaplaceBtn" type="button">Expandir por Laplace</button>
+          <button id="studySarrusBtn" class="secondary" type="button">Resolver 3×3 com Sarrus</button>
         </div>
         <div id="laplaceSuggestion" class="small-note"></div>
         <div id="laplaceStudy" class="det-visuals"></div>
@@ -166,7 +175,7 @@
         <div class="section-head compact-head">
           <div>
             <h3>Histórico da sessão</h3>
-            <p>Cada passo armazena a matriz anterior, a nova matriz e a operação estruturada.</p>
+            <p>Operações, expansões de Laplace e resoluções por Sarrus ficam registradas na mesma linha do tempo e no JSON.</p>
           </div>
           <div class="toolbar compact-toolbar">
             <button id="copyHistoryBtn" class="secondary" type="button">⧉ Copiar histórico JSON</button>
@@ -218,7 +227,7 @@
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <footer>Laboratório de Matrizes 2.2 • cálculos racionais exatos no navegador</footer>
+  <footer>Laboratório de Matrizes 2.3 • cálculos racionais exatos no navegador</footer>
 
   <script src="math.js"></script>
   <script src="history.js"></script>

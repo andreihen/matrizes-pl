@@ -456,3 +456,224 @@ footer { text-align: center; color: var(--muted); padding: 20px; }
 }
 .det-correction h4 { margin: 0 0 7px; }
 .det-correction p { margin: 5px 0; }
+
+/* ============================================================
+   2.3 — Laplace contínuo + responsividade refinada
+   ============================================================ */
+body { overflow-x: hidden; }
+.shell, .panel, .operation-card, .history-card, .study-tool-card { min-width: 0; }
+.matrix-scroll, .matrix-stage, .det-visuals, #solveOutput { max-width: 100%; min-width: 0; }
+
+.laplace-quick-controls {
+  display: grid;
+  grid-template-columns: minmax(140px, 180px) minmax(140px, 180px) minmax(180px, 1fr) auto;
+  gap: 10px;
+  align-items: end;
+  margin-top: 14px;
+}
+.laplace-quick-controls label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-weight: 750;
+  min-width: 0;
+}
+.laplace-quick-controls select,
+.laplace-quick-controls button { width: 100%; min-width: 0; }
+
+.history-step.analysis-event {
+  margin-inline: -4px;
+  padding-inline: 12px;
+  border-left: 3px solid var(--primary);
+  background: color-mix(in srgb, var(--primary-soft) 55%, transparent);
+  border-radius: 0 12px 12px 0;
+}
+.history-meta {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 4px 0 10px;
+  overflow-wrap: anywhere;
+}
+
+.laplace-running-equation,
+.path-factor,
+.laplace-equation {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 12px 14px;
+  margin: 10px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.laplace-running-equation > span,
+.focus-label,
+.final-kicker {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.laplace-running-equation > div,
+.laplace-equation {
+  font: 700 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+  min-width: max-content;
+}
+.laplace-running-equation > strong { display: block; margin-top: 7px; }
+.path-factor { background: var(--primary-soft); color: var(--text); }
+
+.laplace-focus-card {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(0, auto);
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-soft);
+}
+.focus-copy h3 { margin: 0 0 6px; }
+.focus-copy p { margin: 0; color: var(--muted); }
+
+.laplace-term.streamlined { min-width: 0; }
+.laplace-term-top {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.laplace-term-top h4 { margin: 0; }
+.term-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.term-chip.done { color: var(--success); background: var(--success-bg); }
+.term-chip.pending { color: var(--primary); background: var(--primary-soft); }
+.term-contribution { margin-top: 8px; color: var(--muted); }
+.laplace-back { margin-top: 12px; }
+.breadcrumb-arrow { align-self: center; color: var(--muted); }
+
+.final-determinant {
+  border-width: 2px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+}
+.final-determinant h4 {
+  margin: 0 0 10px;
+  font-size: clamp(20px, 4vw, 28px);
+}
+.final-determinant .formula { margin-top: 10px; }
+
+/* Controles de troca inválida ficam claramente desabilitados. */
+select option:disabled { color: var(--muted); }
+
+@media (max-width: 900px) {
+  .shell { max-width: 100%; }
+  .laplace-quick-controls { grid-template-columns: 1fr 1fr; }
+  .laplace-quick-controls #applyLaplaceBtn,
+  .laplace-quick-controls #studySarrusBtn { width: 100%; }
+  .laplace-focus-card { grid-template-columns: 1fr; }
+  .laplace-focus-card .matrix-block { max-width: 100%; }
+}
+
+@media (max-width: 760px) {
+  .topbar { padding: 16px 14px; }
+  .shell { padding-inline: 10px; padding-bottom: 34px; }
+  .panel { margin-bottom: 12px; }
+  .operation-card, .history-card { padding: 14px; margin-top: 14px; }
+  .study-tool-card { padding: 14px; }
+
+  .laplace-quick-controls { grid-template-columns: 1fr 1fr; }
+  .laplace-quick-controls #applyLaplaceBtn { grid-column: 1 / -1; }
+  .laplace-quick-controls #studySarrusBtn { grid-column: 1 / -1; }
+
+  .laplace-breadcrumb {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .breadcrumb-item { flex: 0 0 auto; }
+  .laplace-terms { grid-template-columns: minmax(0, 1fr); }
+
+  .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .matrix-block { max-width: 100%; }
+  .matrix-inner-scroll { max-width: 100%; }
+  .history-step .matrix-block { max-width: 100%; }
+}
+
+@media (max-width: 520px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .topbar h1 { font-size: clamp(24px, 8vw, 30px); }
+  .compact-button { min-width: 44px; padding-inline: 10px; }
+
+  .dimension-grid { grid-template-columns: 1fr 1fr; }
+  .dimension-grid #resizeBtn,
+  .dimension-grid #randomBtn,
+  .dimension-grid #clearBtn { grid-column: 1 / -1; }
+
+  .workspace-top { gap: 10px; }
+  .segmented { grid-template-columns: 1fr 1fr !important; }
+  .workspace-mode { padding-inline: 8px; }
+
+  .mode-switch { grid-template-columns: 1fr 1fr; }
+  .operation-actions { grid-template-columns: 1fr 1fr; }
+  .operation-actions #applyBtn,
+  .operation-actions #checkBtn { grid-column: 1 / -1; }
+
+  .swap-panel { grid-template-columns: 1fr 1fr; }
+  .laplace-quick-controls { grid-template-columns: 1fr; }
+  .laplace-quick-controls #applyLaplaceBtn,
+  .laplace-quick-controls #studySarrusBtn { grid-column: auto; }
+
+  .compact-toolbar { grid-template-columns: 1fr; }
+  .section-head { gap: 8px; }
+  .formula { font-size: 13px; }
+  .feedback, .result-box { padding: 10px 11px; }
+}
+
+@media (max-width: 380px) {
+  .shell { padding-inline: 8px; }
+  .panel { padding: 12px; }
+  .operation-card, .history-card, .study-tool-card { padding: 12px; }
+  .topbar { padding-inline: 12px; }
+  .eyebrow { max-width: 230px; }
+
+  .dimension-grid { grid-template-columns: 1fr; }
+  .dimension-grid > * { grid-column: 1 !important; }
+  .mode-switch { grid-template-columns: 1fr; }
+  .operation-actions { grid-template-columns: 1fr; }
+  .operation-actions #applyBtn,
+  .operation-actions #checkBtn { grid-column: auto; }
+  .swap-panel { grid-template-columns: 1fr 1fr; }
+
+  .matrix-row { grid-auto-columns: 60px; }
+  .matrix-input { width: 60px; }
+  .matrix-cell { min-width: 52px; }
+  .matrix { padding-inline: 16px; }
+  .copy-matrix-btn { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+}
+
+/* A expressão pode rolar dentro do card sem aumentar a largura da página. */
+.laplace-equation {
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

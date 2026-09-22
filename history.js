@@ -16,6 +16,20 @@
     return JSON.stringify(matrixToJSONData(matrix), null, pretty ? 2 : 0);
   }
 
+  function serializeExact(value) {
+    if (value == null) return value;
+    if (value instanceof M.Fraction) return valueToJSON(value);
+    if (Array.isArray(value)) return value.map(serializeExact);
+    if (typeof value === 'object') {
+      const out = {};
+      Object.entries(value).forEach(([key, item]) => {
+        if (item !== undefined) out[key] = serializeExact(item);
+      });
+      return out;
+    }
+    return value;
+  }
+
   function operationToData(operation) {
     if (!operation) return null;
     const data = { type: operation.type };
@@ -35,9 +49,10 @@
     return data;
   }
 
-  function createStep({ index, type, description, before, after, operation = null, metadata = {} }) {
+  function createStep({ index, order = index, type, description, before, after, operation = null, metadata = {} }) {
     return {
       step: index,
+      order,
       type,
       description,
       operation: operationToData(operation),
@@ -58,14 +73,17 @@
       currentMatrix: M.cloneMatrix(initial),
       history: [createStep({
         index: 0,
+        order: 0,
         type: 'initial',
         description: augmentedAt == null ? 'Matriz inicial' : 'Matriz inicial [A | I]',
         before: null,
         after: initial,
         metadata: { augmentedAt }
       })],
+      analysisEvents: [],
       redoStack: [],
       augmentedAt,
+      sequence: 0,
       createdAt: new Date().toISOString()
     };
   }
@@ -79,8 +97,10 @@
       scale: 'rowScale',
       add: 'rowAdd'
     };
+    session.sequence = (session.sequence || 0) + 1;
     const step = createStep({
       index: session.history.length,
+      order: session.sequence,
       type: typeMap[operation?.type] || metadata.type || 'matrixChange',
       description,
       before,
@@ -92,6 +112,22 @@
     session.history.push(step);
     session.redoStack = [];
     return step;
+  }
+
+  function logAnalysisEvent(session, { type, description, matrix = null, metadata = {} }) {
+    if (!session) return null;
+    session.sequence = (session.sequence || 0) + 1;
+    const event = {
+      event: session.analysisEvents.length + 1,
+      order: session.sequence,
+      type,
+      description,
+      matrix: matrix ? M.cloneMatrix(matrix) : null,
+      metadata: { ...metadata },
+      timestamp: new Date().toISOString()
+    };
+    session.analysisEvents.push(event);
+    return event;
   }
 
   function undo(session) {
@@ -106,6 +142,8 @@
     if (!session || !session.redoStack.length) return null;
     const step = session.redoStack.pop();
     step.step = session.history.length;
+    session.sequence = (session.sequence || 0) + 1;
+    step.order = session.sequence;
     session.history.push(step);
     session.currentMatrix = M.cloneMatrix(step.after);
     return step;
@@ -115,7 +153,9 @@
     if (!session) return;
     session.currentMatrix = M.cloneMatrix(session.initialMatrix);
     session.history = [session.history[0]];
+    session.analysisEvents = [];
     session.redoStack = [];
+    session.sequence = 0;
   }
 
   function swapStats(session) {
@@ -145,19 +185,39 @@
   function stepToJSON(step) {
     return {
       step: step.step,
+      order: step.order,
       type: step.type,
       description: step.description,
       operation: step.operation,
       before: step.before ? matrixToJSONData(step.before) : null,
       after: step.after ? matrixToJSONData(step.after) : null,
-      metadata: step.metadata,
+      metadata: serializeExact(step.metadata),
       timestamp: step.timestamp
     };
   }
 
+  function analysisEventToJSON(event) {
+    return {
+      event: event.event,
+      order: event.order,
+      type: event.type,
+      description: event.description,
+      matrix: event.matrix ? matrixToJSONData(event.matrix) : null,
+      metadata: serializeExact(event.metadata),
+      timestamp: event.timestamp
+    };
+  }
+
+  function getTimeline(session) {
+    if (!session) return [];
+    const steps = session.history.map(step => ({ kind: 'matrixStep', order: step.order ?? step.step, item: step }));
+    const events = (session.analysisEvents || []).map(event => ({ kind: 'analysisEvent', order: event.order, item: event }));
+    return [...steps, ...events].sort((a, b) => a.order - b.order);
+  }
+
   function sessionToJSONData(session, extra = {}) {
     return {
-      version: '2.2',
+      version: '2.3',
       sessionId: session.id,
       mode: session.mode,
       problemType: session.problemType,
@@ -166,8 +226,12 @@
       currentMatrix: matrixToJSONData(session.currentMatrix),
       augmentedAt: session.augmentedAt,
       steps: session.history.map(stepToJSON),
+      analysisEvents: (session.analysisEvents || []).map(analysisEventToJSON),
+      timeline: getTimeline(session).map(entry => entry.kind === 'matrixStep'
+        ? { kind: entry.kind, ...stepToJSON(entry.item) }
+        : { kind: entry.kind, ...analysisEventToJSON(entry.item) }),
       determinantState: session.problemType === 'determinant' ? swapStats(session) : undefined,
-      ...extra
+      ...serializeExact(extra)
     };
   }
 
@@ -179,15 +243,20 @@
     valueToJSON,
     matrixToJSONData,
     matrixToJSONString,
+    serializeExact,
     operationToData,
     createStep,
     createSession,
     commit,
+    logAnalysisEvent,
     undo,
     redo,
     restart,
     swapStats,
     determinantTransformFactor,
+    stepToJSON,
+    analysisEventToJSON,
+    getTimeline,
     sessionToJSONData,
     sessionToJSONString
   };

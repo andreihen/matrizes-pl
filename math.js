@@ -197,9 +197,7 @@
   function swapRows(matrix, firstRow, secondRow) {
     assertRow(matrix, firstRow);
     assertRow(matrix, secondRow);
-    if (firstRow === secondRow) {
-      throw new Error('Não é possível trocar uma linha com ela mesma.');
-    }
+    if (firstRow === secondRow) throw new Error('Escolha duas linhas diferentes para realizar a troca.');
     const result = cloneMatrix(matrix);
     [result[firstRow], result[secondRow]] = [result[secondRow], result[firstRow]];
     return result;
@@ -208,9 +206,7 @@
   function swapCols(matrix, firstCol, secondCol) {
     assertColumn(matrix, firstCol);
     assertColumn(matrix, secondCol);
-    if (firstCol === secondCol) {
-      throw new Error('Não é possível trocar uma coluna com ela mesma.');
-    }
+    if (firstCol === secondCol) throw new Error('Escolha duas colunas diferentes para realizar a troca.');
     const result = cloneMatrix(matrix);
     result.forEach(row => {
       [row[firstCol], row[secondCol]] = [row[secondCol], row[firstCol]];

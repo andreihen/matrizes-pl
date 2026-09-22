@@ -96,3 +96,67 @@ assert.strictEqual(H.determinantTransformFactor(scaleSession).toString(), '2');
 assert.strictEqual(M.determinant(scaleSession.currentMatrix).value.div(H.determinantTransformFactor(scaleSession)).toString(), '-2');
 
 console.log('✓ Todos os testes matemáticos e de histórico passaram.');
+
+// 2.3 — trocas com a mesma linha/coluna são inválidas
+assert.throws(() => M.swapRows(base2, 0, 0), /linhas diferentes/i);
+assert.throws(() => M.swapCols(base2, 1, 1), /colunas diferentes/i);
+
+// 2.3 — Laplace com único coeficiente não nulo preserva o multiplicador
+const uniqueLaplace = mat([
+  [2, 0, 0, 0],
+  [0, 1, 0, 0],
+  [0, 0, 1, 0],
+  [0, 0, 0, 1]
+]);
+const uniqueExpansion = M.laplaceExpansion(uniqueLaplace, 'col', 0);
+const uniqueNonZero = uniqueExpansion.terms.filter(term => !term.element.isZero());
+assert.strictEqual(uniqueNonZero.length, 1);
+assert.strictEqual(uniqueNonZero[0].element.toString(), '2');
+assert.strictEqual(uniqueNonZero[0].minorDet.toString(), '1');
+assert.strictEqual(uniqueNonZero[0].term.toString(), '2');
+assert.strictEqual(uniqueExpansion.value.toString(), '2');
+
+// 2.3 — sinal de trocas anteriores entra no fechamento do determinante
+const signSession = H.createSession({ mode: 'study', problemType: 'determinant', initialMatrix: uniqueLaplace });
+H.commit(
+  signSession,
+  M.swapRows(signSession.currentMatrix, 0, 1),
+  { type: 'swap', rowA: 0, rowB: 1 },
+  'L1 ↔ L2'
+);
+const currentDet = M.determinantLaplace(signSession.currentMatrix, 'col', 0);
+assert.strictEqual(currentDet.toString(), '-2');
+assert.strictEqual(H.swapStats(signSession).sign, -1);
+assert.strictEqual(H.determinantTransformFactor(signSession).toString(), '-1');
+assert.strictEqual(currentDet.div(H.determinantTransformFactor(signSession)).toString(), '2');
+
+// 2.3 — eventos de Laplace fazem parte do histórico/exportação estruturada
+const analysisSession = H.createSession({ mode: 'study', problemType: 'determinant', initialMatrix: uniqueLaplace });
+H.logAnalysisEvent(analysisSession, {
+  type: 'laplaceExpansion',
+  description: 'Expansão de Laplace pela coluna 1',
+  matrix: uniqueLaplace,
+  metadata: {
+    axis: 'col',
+    index: 0,
+    coefficient: F('2'),
+    expression: 'det(A) = 2·det(M11)'
+  }
+});
+H.logAnalysisEvent(analysisSession, {
+  type: 'laplaceResult',
+  description: 'Laplace concluído',
+  matrix: uniqueLaplace,
+  metadata: {
+    currentDeterminant: F('2'),
+    transformFactor: F('1'),
+    originalDeterminant: F('2')
+  }
+});
+const analysisExport = H.sessionToJSONData(analysisSession);
+assert.strictEqual(analysisExport.analysisEvents.length, 2);
+assert.strictEqual(analysisExport.timeline.length, 3);
+assert.strictEqual(analysisExport.analysisEvents[0].metadata.coefficient, 2);
+assert.strictEqual(analysisExport.analysisEvents[1].metadata.originalDeterminant, 2);
+
+console.log('✓ Testes 2.3 de Laplace, sinal, histórico e trocas inválidas passaram.');

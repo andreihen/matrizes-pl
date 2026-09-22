@@ -1,93 +1,86 @@
-# Laboratório de Matrizes 2.2
+# Laboratório de Matrizes 2.3
 
-Aplicação web local para estudar matrizes com operações manuais, frações exatas, histórico estruturado, determinantes e inversas.
+Aplicação web local para estudar matrizes passo a passo com frações exatas, operações elementares, determinantes, Expansão de Laplace, Regra de Sarrus e inversa por `[A | I]`.
 
-## Como executar
+## Executar
 
-Não há backend nem dependências externas para usar o site.
+Não há backend ou dependências externas para o site.
 
 1. Extraia a pasta.
 2. Abra `index.html` no navegador.
 
-Para os testes matemáticos:
+Testes matemáticos/histórico:
 
 ```bash
 node test.js
 ```
 
-## Estrutura
+## Arquivos principais
 
-- `index.html` — estrutura principal da interface.
-- `styles.css` — layout, responsividade e estados visuais.
-- `math.js` — Fraction, operações, determinantes, Laplace, Sarrus e inversa.
-- `history.js` — sessões, undo/redo, histórico estruturado e serialização JSON.
-- `ui.js` — matrizes reutilizáveis, frações, copiar JSON, toast e highlights.
-- `app.js` — estado, navegação e integração dos fluxos.
-- `test.js` — testes matemáticos e de histórico.
+- `index.html` — interface.
+- `styles.css` — layout e responsividade.
+- `math.js` — Fraction, operações matriciais, determinantes, Laplace, Sarrus e inversa.
+- `history.js` — sessões, operações, eventos de análise, undo/redo e JSON.
+- `ui.js` — renderização reutilizável de matrizes, frações e feedback visual.
+- `app.js` — integração dos fluxos ESTUDAR/RESOLVER.
+- `test.js` — testes matemáticos e do histórico.
+- `CHANGELOG_2.3.md` — mudanças desta versão.
+- `PROMPT_IMPLEMENTACAO_2.3.md` — especificação usada nesta revisão.
 
-## Navegação 2.2
+## Laplace no modo de estudo
 
-A interface agora possui dois modos principais:
+O fluxo agora é contínuo. Escolha linha/coluna e aplique Laplace. A expressão principal permanece visível.
 
-- **ESTUDAR** — o aluno realiza as operações.
-- **RESOLVER** — o sistema apresenta uma resolução.
+Exemplo:
 
-Dentro dos dois modos é possível escolher:
-
-- **Determinante**
-- **Inversa**
-
-As sessões de estudo de determinante e inversa são mantidas separadamente.
-
-## JSON
-
-Toda matriz renderizada possui **Copiar JSON**. Inteiros são exportados como números e frações não inteiras como strings:
-
-```json
-[
-  ["1/2", 2],
-  ["-3/4", 1]
-]
+```text
+det(A) = 2 · det(M11)
 ```
 
-O histórico pode ser copiado ou exportado como um JSON de sessão contendo matriz inicial, matriz atual, passos, `before`, `after`, operação estruturada e metadados.
+Se `M11` for 3×3, ele pode ser resolvido por Sarrus. Se `det(M11)=5`, a conta retorna automaticamente para:
 
-## Determinantes
+```text
+det(A atual) = 2 · 5 = 10
+```
 
-No modo de estudo:
+Se antes houve operações que mudam o determinante, a aplicação fecha a conta usando:
 
-- operações de linha e troca de colunas;
-- contador separado de trocas de linhas/colunas;
-- fator de sinal `(-1)^trocas`;
-- fator acumulado das operações que alteram o determinante;
-- Expansão de Laplace navegável;
-- termos de Laplace permanecem pendentes até seus menores serem resolvidos;
-- menores 3×3 podem ser resolvidos por Sarrus;
-- o resultado retorna ao termo pai automaticamente;
-- linha/coluna com um único termo não nulo pode avançar automaticamente para o menor relevante;
-- sugestão de linha/coluna com mais zeros.
+```text
+det(A original) = det(A atual) / fator acumulado
+```
 
-No fechamento, a ferramenta relaciona o determinante da matriz transformada ao determinante da matriz inicial, incluindo trocas e escalas de linha.
+O fator inclui trocas de linhas/colunas e multiplicações de linha.
 
-## Operação manual
+## Histórico
 
-Antes da conferência, células matematicamente alteradas recebem destaque neutro. Por exemplo, `1/2` e `2/4` são considerados iguais e não são marcados como alteração.
+A linha do tempo reúne:
 
-Depois da conferência, somente alterações realizadas recebem estado de correto/incorreto.
+- matriz inicial;
+- operações de linha/coluna;
+- Expansões de Laplace;
+- resoluções por Sarrus;
+- resultado final do determinante.
 
-## Inversa
+Esses dados também aparecem ao copiar/exportar o JSON da sessão. Eventos de Laplace são registrados como análises para não interferirem no undo/redo das operações da matriz.
 
-O modo **ESTUDAR → Inversa** cria automaticamente `[A | I]`. Trocas de coluna ficam desabilitadas no Gauss-Jordan padrão. Ao atingir `[I | A⁻¹]`, é possível verificar `A × A⁻¹ = I`.
+## Trocas
 
-## Responsividade
+Trocar uma linha ou coluna com ela mesma é rejeitado na UI e na camada matemática.
 
-Os fluxos principais foram validados sem overflow horizontal da página em:
+## Frações
+
+Cálculos continuam exatos. `1/2` permanece racional e não vira `0.5` internamente.
+
+## Responsividade validada
+
+A interface foi verificada em:
 
 - 320 px
 - 360 px
 - 375 px
 - 390 px
 - 430 px
+- 768 px
 - 1280 px
 
-Matrizes largas mantêm rolagem dentro do próprio componente.
+A página não apresenta overflow horizontal nesses tamanhos; matrizes e expressões largas usam rolagem interna.
