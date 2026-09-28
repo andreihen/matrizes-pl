@@ -154,6 +154,8 @@ code { background: var(--panel-soft); border: 1px solid var(--line); border-radi
 }
 .aug-divider { border-left: 2px solid var(--primary) !important; margin-left: 6px; padding-left: 13px !important; }
 .highlight-cell { background: var(--primary-soft); outline: 2px solid color-mix(in srgb, var(--primary) 60%, transparent); }
+.pivot-cell { background: var(--success-bg) !important; outline: 2px solid color-mix(in srgb, var(--success) 72%, transparent) !important; }
+.target-cell { background: var(--warn-bg) !important; outline: 2px solid color-mix(in srgb, var(--warn) 62%, transparent) !important; }
 .fraction { display: inline-flex; align-items: center; gap: 2px; vertical-align: middle; }
 .fraction-sign { font-size: 1.08em; }
 .fraction-stack { display: inline-flex; min-width: 1.4em; flex-direction: column; align-items: stretch; text-align: center; line-height: 1; }
@@ -166,7 +168,19 @@ code { background: var(--panel-soft); border: 1px solid var(--line); border-radi
 .op-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 10px; margin: 14px 0; align-items: end; }
 .op-grid select, .op-grid input { width: 100%; min-width: 0; }
 .formula { font: 650 15px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--panel-soft); padding: 10px 12px; border-radius: 10px; overflow-wrap: anywhere; }
+.operation-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: -2px 0 10px; color: var(--muted); font-size: 12px; }
+.operation-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.operation-legend i { width: 14px; height: 14px; border-radius: 4px; border: 1px solid var(--line); }
+.legend-pivot { background: var(--success-bg); outline: 1px solid var(--success); }
+.legend-target { background: var(--warn-bg); outline: 1px solid color-mix(in srgb, var(--warn) 65%, transparent); }
+.legend-edited { background: color-mix(in srgb, var(--warn-bg) 62%, var(--warn) 18%); outline: 2px solid var(--warn); }
 .manual-wrap { margin-top: 12px; padding: 13px; border: 1px dashed var(--line); border-radius: 12px; }
+.calculation-guide { margin-top: 12px; padding: 11px 12px; border-left: 4px solid var(--primary); border-radius: 9px; background: var(--panel-soft); }
+.hint-toggle { margin-top: 10px; }
+.calculation-list { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 8px; }
+.calculation-list code { padding: 6px 8px; background: var(--panel); }
+.restore-cell { min-height: 30px; padding: 4px 8px; margin: 5px 2px 0; border-radius: 8px; background: var(--warn-bg); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 35%, var(--line)); font-size: 12px; }
+.locked-cell { opacity: .68; cursor: not-allowed; background: var(--panel-soft) !important; outline: none !important; }
 .feedback, .result-box { margin-top: 14px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); }
 .feedback.info { background: var(--primary-soft); }
 .feedback.success { background: var(--success-bg); color: var(--success); }
@@ -349,8 +363,8 @@ footer { text-align: center; color: var(--muted); padding: 20px; }
 .matrix-scroll > .matrix-block { display: inline-block; }
 
 .changed-cell {
-  outline: 2px solid var(--primary) !important;
-  background: var(--primary-soft) !important;
+  outline: 3px solid var(--warn) !important;
+  background: color-mix(in srgb, var(--warn-bg) 62%, var(--warn) 18%) !important;
 }
 .correct-cell {
   outline: 2px solid var(--success) !important;
@@ -396,6 +410,44 @@ footer { text-align: center; color: var(--muted); padding: 20px; }
 .breadcrumb-item.active { color: var(--primary); border-color: var(--primary); background: var(--primary-soft); }
 .term-status { color: var(--muted); }
 .laplace-term button { margin-top: 9px; width: 100%; }
+.sarrus-entry { display: grid; grid-template-columns: minmax(150px, 1fr) 92px; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); }
+.sarrus-entry input, .term-list > label input, .sarrus-final input { width: 100%; text-align: center; }
+.term-list > label:not(.sarrus-entry) { display: grid; gap: 6px; margin-top: 10px; font-weight: 800; }
+.sarrus-final { display: grid; grid-template-columns: minmax(220px, 1fr) 120px; gap: 9px; align-items: center; max-width: 540px; margin-top: 12px; font-weight: 800; }
+.solution-values { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 9px; }
+.solution-values span { padding: 5px 9px; border-radius: 8px; background: var(--panel); border: 1px solid var(--line); }
+.bottom-confirm-actions { justify-content: flex-end; }
+.system-lesson-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 14px; }
+.system-lesson-grid article, .equation-card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: var(--panel-soft); }
+.system-lesson-grid p { margin: 5px 0 0; color: var(--muted); }
+.system-examples { margin-top: 14px; }
+.equation-card { margin: 12px 0; }
+.equation-card h4 { margin: 0 0 8px; }
+.equation-card ol { margin: 0; padding-left: 24px; }
+.equation-card li { margin: 7px 0; }
+.equation-card li span { display: block; margin-top: 3px; color: var(--success); font-weight: 750; }
+.cramer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; margin-top: 12px; }
+.cramer-item { min-width: 0; padding: 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.cramer-item p { margin: 7px 0 0; overflow-wrap: anywhere; }
+.system-generator, .exercise-loader, .matrix-b-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; padding: 12px; margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel-soft); }
+.system-generator > div:first-child { flex: 1 1 280px; }
+.system-generator p { margin: 4px 0 0; color: var(--muted); }
+.system-generator label, .exercise-loader label, .matrix-b-controls label { display: grid; gap: 5px; color: var(--muted); font-weight: 750; }
+.matrix-operation-layout { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px; margin: 14px 0; }
+.matrix-cell-steps { columns: 2; column-gap: 28px; }
+.matrix-cell-steps li { break-inside: avoid; margin: 7px 0; }
+.det-matrix-context { margin-top: 14px; }
+.matrix-context-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.matrix-context-grid article { min-width: 0; border: 1px solid var(--line); border-radius: 12px; padding: 11px; background: var(--panel); }
+.matrix-context-grid h4 { margin: 0 0 4px; }
+.matrix-context-grid p { min-height: 38px; margin: 0 0 8px; color: var(--muted); font-size: 12px; }
+.matrix-context-grid button { width: 100%; margin-top: 8px; }
+.minor-answer { display: grid; gap: 5px; margin-top: 9px; color: var(--muted); font-weight: 750; }
+.minor-answer input { width: 100%; }
+.laplace-calculation { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.laplace-calculation h4, .laplace-calculation p { margin: 0 0 7px; }
+.laplace-term details { margin-top: 9px; }
+.laplace-term summary { cursor: pointer; font-weight: 750; }
 
 .history-step code {
   display: inline-block;
@@ -434,6 +486,12 @@ footer { text-align: center; color: var(--muted); padding: 20px; }
   .compact-toolbar { display: grid; grid-template-columns: 1fr; width: 100%; }
   .compact-toolbar button { width: 100%; }
   .matrix-block-head { position: sticky; left: 0; }
+  .sarrus-entry, .sarrus-final { grid-template-columns: 1fr; }
+  .system-lesson-grid { grid-template-columns: 1fr; }
+  .matrix-context-grid { grid-template-columns: 1fr; }
+  .matrix-cell-steps { columns: 1; }
+  .system-generator, .exercise-loader, .matrix-b-controls { display: grid; grid-template-columns: 1fr; }
+  .system-generator button, .exercise-loader button, .matrix-b-controls button { width: 100%; }
 }
 
 @media (max-width: 430px) {
@@ -458,222 +516,288 @@ footer { text-align: center; color: var(--muted); padding: 20px; }
 .det-correction p { margin: 5px 0; }
 
 /* ============================================================
-   2.3 — Laplace contínuo + responsividade refinada
+   2.4 — entrada orientada ao tipo, expressões e gerador de sistemas
    ============================================================ */
-body { overflow-x: hidden; }
-.shell, .panel, .operation-card, .history-card, .study-tool-card { min-width: 0; }
-.matrix-scroll, .matrix-stage, .det-visuals, #solveOutput { max-width: 100%; min-width: 0; }
-
-.laplace-quick-controls {
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.section-eyebrow { margin: 0 0 5px !important; }
+.setup-type-grid {
   display: grid;
-  grid-template-columns: minmax(140px, 180px) minmax(140px, 180px) minmax(180px, 1fr) auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  align-items: end;
-  margin-top: 14px;
+  margin: 18px 0 10px;
 }
-.laplace-quick-controls label {
-  display: grid;
-  gap: 6px;
-  color: var(--muted);
-  font-weight: 750;
+.setup-type {
   min-width: 0;
+  min-height: 86px;
+  padding: 13px;
+  text-align: left;
+  display: grid;
+  gap: 5px;
+  align-content: center;
+  background: var(--panel-soft);
+  color: var(--text);
+  border: 1px solid var(--line);
+  box-shadow: none;
 }
-.laplace-quick-controls select,
-.laplace-quick-controls button { width: 100%; min-width: 0; }
-
-.history-step.analysis-event {
-  margin-inline: -4px;
-  padding-inline: 12px;
+.setup-type strong { font-size: 15px; }
+.setup-type span { color: var(--muted); font-size: 12px; font-weight: 650; line-height: 1.3; }
+.setup-type.active {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.setup-type.active strong, .setup-type.active span { color: var(--primary); }
+.setup-hint {
+  margin: 0 0 16px;
+  padding: 10px 12px;
   border-left: 3px solid var(--primary);
-  background: color-mix(in srgb, var(--primary-soft) 55%, transparent);
-  border-radius: 0 12px 12px 0;
-}
-.history-meta {
+  border-radius: 8px;
+  background: var(--panel-soft);
   color: var(--muted);
-  font-size: 13px;
-  margin: 4px 0 10px;
-  overflow-wrap: anywhere;
 }
-
-.laplace-running-equation,
-.path-factor,
-.laplace-equation {
+.input-dimension-grid { margin-top: 0; }
+.workspace-type-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 850;
+  white-space: nowrap;
+}
+.generator-card {
+  margin: 12px 0 16px;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-soft);
+}
+.generator-copy p { margin: 4px 0 12px; color: var(--muted); }
+.solution-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 9px;
+}
+.solution-inputs label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  font-weight: 800;
+}
+.solution-inputs input { width: 100%; min-width: 0; }
+.generator-actions { margin-top: 10px; }
+.equation-preview { margin-top: 12px; }
+.generated-equations {
+  display: grid;
+  gap: 7px;
+  padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
-  padding: 12px 14px;
-  margin: 10px 0;
-  overflow-x: auto;
-  overflow-y: hidden;
 }
-.laplace-running-equation > span,
-.focus-label,
-.final-kicker {
-  display: block;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 850;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  margin-bottom: 5px;
-}
-.laplace-running-equation > div,
-.laplace-equation {
-  font: 700 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
-  min-width: max-content;
-}
-.laplace-running-equation > strong { display: block; margin-top: 7px; }
-.path-factor { background: var(--primary-soft); color: var(--text); }
-
-.laplace-focus-card {
+.generated-equations > div { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 7px; align-items: center; }
+.generated-equations > div > span {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) minmax(0, auto);
-  gap: 16px;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 900;
+}
+.generated-equations code { overflow-wrap: anywhere; }
+.collection-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+.collection-head p { margin: 4px 0 0; color: var(--muted); }
+.matrix-collection {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr));
+  gap: 12px;
+}
+.operand-card {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--panel-soft);
+}
+.operand-card-head {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 9px;
+}
+.operand-card-head > div { display: flex; align-items: center; gap: 9px; }
+.operand-symbol {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 10px;
+  background: var(--primary);
+  color: white;
+  font-weight: 900;
+  font-size: 17px;
+}
+.operand-remove { min-height: 36px; padding: 6px 9px; font-size: 12px; }
+.operand-controls {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 7px;
+  align-items: end;
+  margin: 11px 0 3px;
+}
+.operand-controls label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 800; }
+.operand-controls label { grid-column: span 3; }
+.operand-controls button { grid-column: span 2; width: 100%; min-width: 0; }
+.operand-controls input { min-width: 0; width: 100%; }
+.operand-editor { margin-top: 3px; }
+.expression-intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(230px, .75fr);
+  gap: 12px;
+  align-items: stretch;
+  margin-bottom: 14px;
+}
+.expression-intro h3 { margin: 0 0 5px; }
+.expression-intro p { margin: 0; color: var(--muted); }
+.expression-note {
+  padding: 11px 12px;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-weight: 750;
+}
+.matrix-reference-grid {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 2px 1px 9px;
+  scroll-snap-type: x proximity;
+}
+.reference-card { position: relative; flex: 0 0 auto; min-width: 210px; scroll-snap-align: start; }
+.reference-label {
+  position: absolute;
+  z-index: 2;
+  top: 7px;
+  left: 8px;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 8px;
+  background: var(--primary);
+  color: white;
+  font-weight: 900;
+}
+.reference-card .matrix-block-head { padding-left: 43px; }
+.expression-builder {
+  margin: 10px 0 14px;
   padding: 14px;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: var(--panel-soft);
 }
-.focus-copy h3 { margin: 0 0 6px; }
-.focus-copy p { margin: 0; color: var(--muted); }
-
-.laplace-term.streamlined { min-width: 0; }
-.laplace-term-top {
+.expression-builder label { display: grid; gap: 6px; font-weight: 850; }
+#matrixExpressionInput {
+  width: 100%;
+  font: 750 17px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.expression-actions { margin-top: 9px; }
+.expression-summary, .expression-final {
+  margin: 12px 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel-soft);
+}
+.expression-summary span { display: block; color: var(--muted); font-size: 12px; font-weight: 800; }
+.expression-summary strong { display: block; margin-top: 3px; font: 800 17px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+.expression-summary p { margin: 5px 0 0; color: var(--muted); }
+.expression-step {
+  margin: 10px 0;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+.expression-step-head {
   display: flex;
-  gap: 8px;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  flex-wrap: wrap;
+  gap: 9px;
   margin-bottom: 8px;
 }
-.laplace-term-top h4 { margin: 0; }
-.term-chip {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 4px 8px;
+.expression-step-head strong { overflow-wrap: anywhere; }
+.step-kind {
+  flex: 0 0 auto;
+  padding: 4px 7px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 11px;
+  font-weight: 850;
 }
-.term-chip.done { color: var(--success); background: var(--success-bg); }
-.term-chip.pending { color: var(--primary); background: var(--primary-soft); }
-.term-contribution { margin-top: 8px; color: var(--muted); }
-.laplace-back { margin-top: 12px; }
-.breadcrumb-arrow { align-self: center; color: var(--muted); }
-
-.final-determinant {
-  border-width: 2px;
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent);
-}
-.final-determinant h4 {
-  margin: 0 0 10px;
-  font-size: clamp(20px, 4vw, 28px);
-}
-.final-determinant .formula { margin-top: 10px; }
-
-/* Controles de troca inválida ficam claramente desabilitados. */
-select option:disabled { color: var(--muted); }
+.expression-practice-editor { overflow-x: auto; }
+.text-success { color: var(--success); }
+.text-danger { color: var(--danger); }
+.compact-lessons { margin-top: 12px; }
 
 @media (max-width: 900px) {
-  .shell { max-width: 100%; }
-  .laplace-quick-controls { grid-template-columns: 1fr 1fr; }
-  .laplace-quick-controls #applyLaplaceBtn,
-  .laplace-quick-controls #studySarrusBtn { width: 100%; }
-  .laplace-focus-card { grid-template-columns: 1fr; }
-  .laplace-focus-card .matrix-block { max-width: 100%; }
+  .setup-type-grid { grid-template-columns: 1fr 1fr; }
+  .expression-intro { grid-template-columns: 1fr; }
+  .operand-controls { grid-template-columns: 1fr 1fr; }
+  .operand-controls label, .operand-controls button { grid-column: auto; }
+  .operand-controls button { width: 100%; }
 }
 
-@media (max-width: 760px) {
-  .topbar { padding: 16px 14px; }
-  .shell { padding-inline: 10px; padding-bottom: 34px; }
-  .panel { margin-bottom: 12px; }
-  .operation-card, .history-card { padding: 14px; margin-top: 14px; }
-  .study-tool-card { padding: 14px; }
-
-  .laplace-quick-controls { grid-template-columns: 1fr 1fr; }
-  .laplace-quick-controls #applyLaplaceBtn { grid-column: 1 / -1; }
-  .laplace-quick-controls #studySarrusBtn { grid-column: 1 / -1; }
-
-  .laplace-breadcrumb {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-  .breadcrumb-item { flex: 0 0 auto; }
-  .laplace-terms { grid-template-columns: minmax(0, 1fr); }
-
-  .matrix-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .matrix-block { max-width: 100%; }
-  .matrix-inner-scroll { max-width: 100%; }
-  .history-step .matrix-block { max-width: 100%; }
-}
-
-@media (max-width: 520px) {
-  .topbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-  }
-  .topbar h1 { font-size: clamp(24px, 8vw, 30px); }
-  .compact-button { min-width: 44px; padding-inline: 10px; }
-
-  .dimension-grid { grid-template-columns: 1fr 1fr; }
-  .dimension-grid #resizeBtn,
-  .dimension-grid #randomBtn,
-  .dimension-grid #clearBtn { grid-column: 1 / -1; }
-
-  .workspace-top { gap: 10px; }
-  .segmented { grid-template-columns: 1fr 1fr !important; }
-  .workspace-mode { padding-inline: 8px; }
-
-  .mode-switch { grid-template-columns: 1fr 1fr; }
-  .operation-actions { grid-template-columns: 1fr 1fr; }
-  .operation-actions #applyBtn,
-  .operation-actions #checkBtn { grid-column: 1 / -1; }
-
-  .swap-panel { grid-template-columns: 1fr 1fr; }
-  .laplace-quick-controls { grid-template-columns: 1fr; }
-  .laplace-quick-controls #applyLaplaceBtn,
-  .laplace-quick-controls #studySarrusBtn { grid-column: auto; }
-
-  .compact-toolbar { grid-template-columns: 1fr; }
-  .section-head { gap: 8px; }
-  .formula { font-size: 13px; }
-  .feedback, .result-box { padding: 10px 11px; }
+@media (max-width: 620px) {
+  .panel { padding: 15px; border-radius: 15px; }
+  .shell { padding-inline: 10px; margin-top: 12px; }
+  .topbar { padding: 17px 12px; align-items: flex-start; }
+  .topbar h1 { font-size: clamp(25px, 8vw, 32px); }
+  .topbar-copy > p:last-child { font-size: 13px; }
+  .setup-type-grid { grid-template-columns: 1fr; gap: 7px; }
+  .setup-type { min-height: 66px; padding: 10px 12px; }
+  .input-dimension-grid { grid-template-columns: 1fr 1fr; }
+  .input-dimension-grid button { width: 100%; }
+  .collection-head { display: grid; grid-template-columns: 1fr; }
+  .collection-head button { width: 100%; }
+  .matrix-collection { grid-template-columns: 1fr; }
+  .operand-controls { grid-template-columns: 1fr 1fr; }
+  .expression-actions { display: grid; grid-template-columns: 1fr; }
+  .expression-actions button { width: 100%; }
+  .expression-step-head { display: grid; grid-template-columns: 1fr; }
+  .step-kind { justify-self: start; }
+  .solution-inputs { grid-template-columns: 1fr 1fr; }
+  .generator-actions { display: grid; grid-template-columns: 1fr; }
+  .generator-actions button { width: 100%; }
+  .workspace-type-badge { justify-self: start; }
 }
 
 @media (max-width: 380px) {
-  .shell { padding-inline: 8px; }
-  .panel { padding: 12px; }
-  .operation-card, .history-card, .study-tool-card { padding: 12px; }
-  .topbar { padding-inline: 12px; }
-  .eyebrow { max-width: 230px; }
-
-  .dimension-grid { grid-template-columns: 1fr; }
-  .dimension-grid > * { grid-column: 1 !important; }
-  .mode-switch { grid-template-columns: 1fr; }
-  .operation-actions { grid-template-columns: 1fr; }
-  .operation-actions #applyBtn,
-  .operation-actions #checkBtn { grid-column: auto; }
-  .swap-panel { grid-template-columns: 1fr 1fr; }
-
-  .matrix-row { grid-auto-columns: 60px; }
-  .matrix-input { width: 60px; }
-  .matrix-cell { min-width: 52px; }
-  .matrix { padding-inline: 16px; }
-  .copy-matrix-btn { max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
-}
-
-/* A expressão pode rolar dentro do card sem aumentar a largura da página. */
-.laplace-equation {
-  min-width: 0;
-  width: 100%;
-  max-width: 100%;
-  white-space: nowrap;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+  .input-dimension-grid, .solution-inputs, .operand-controls { grid-template-columns: 1fr; }
+  .topbar { gap: 8px; }
+  .compact-button { min-height: 38px; padding: 7px 9px; }
 }

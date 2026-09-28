@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="theme-color" content="#335cff" />
-  <title>Laboratório de Matrizes 2.3</title>
+  <title>Laboratório de Matrizes</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
     <div class="topbar-copy">
       <p class="eyebrow">Álgebra Linear • estudo passo a passo</p>
       <h1>Laboratório de Matrizes</h1>
-      <p>Pratique, confira e resolva determinantes e inversas com frações exatas.</p>
+      <p>Pratique determinantes, inversas e sistemas lineares com frações exatas.</p>
     </div>
     <button id="themeBtn" class="ghost compact-button" type="button">◐ Tema</button>
   </header>
@@ -21,44 +21,83 @@
     <section class="panel setup-panel">
       <div class="section-head">
         <div>
-          <h2>1. Matriz de entrada</h2>
-          <p>Use inteiros ou frações como <code>-3</code>, <code>1/2</code> e <code>-5/7</code>.</p>
+          <p class="eyebrow section-eyebrow">Comece pelo objetivo</p>
+          <h2>1. Configure o estudo</h2>
+          <p>Escolha o tipo de exercício primeiro. Depois o laboratório mostra somente as entradas necessárias.</p>
         </div>
       </div>
 
-      <div class="dimension-grid">
-        <label>Linhas <input id="rows" type="number" min="1" max="6" value="3" inputmode="numeric" /></label>
-        <label>Colunas <input id="cols" type="number" min="1" max="6" value="3" inputmode="numeric" /></label>
-        <button id="resizeBtn" type="button">Criar matriz</button>
-        <button id="randomBtn" class="secondary" type="button">Aleatória</button>
-        <button id="clearBtn" class="ghost" type="button">Zerar</button>
+      <div class="setup-type-grid" role="group" aria-label="Tipo de estudo">
+        <button class="setup-type active" data-problem-type="determinant" type="button"><strong>Determinante</strong><span>Laplace, Sarrus e operações</span></button>
+        <button class="setup-type" data-problem-type="inverse" type="button"><strong>Inversa</strong><span>Gauss-Jordan em [A | I]</span></button>
+        <button class="setup-type" data-problem-type="linearSystem" type="button"><strong>Sistema linear</strong><span>Matriz aumentada e escalonamento</span></button>
+        <button class="setup-type" data-problem-type="matrixOperations" type="button"><strong>Operações matriciais</strong><span>A, B, C... e expressões algébricas</span></button>
       </div>
+      <select id="problemType" class="visually-hidden" aria-label="Tipo de estudo">
+        <option value="determinant">Determinante</option>
+        <option value="inverse">Inversa</option>
+        <option value="linearSystem">Sistemas lineares</option>
+        <option value="matrixOperations">Operações com matrizes</option>
+      </select>
+      <p id="inputTypeHint" class="setup-hint"></p>
 
-      <div class="quick-examples">
-        <span>Exemplos:</span>
-        <button id="example2Btn" class="chip" type="button">2×2</button>
-        <button id="example3Btn" class="chip" type="button">3×3 • Sarrus</button>
-        <button id="example4Btn" class="chip" type="button">4×4 • Laplace</button>
-      </div>
+      <div id="singleMatrixSetup">
+        <div class="dimension-grid input-dimension-grid">
+          <label id="rowsLabel"><span id="rowsLabelText">Ordem</span><input id="rows" type="number" min="1" max="6" value="3" inputmode="numeric" /></label>
+          <label id="colsLabel"><span id="colsLabelText">Colunas</span><input id="cols" type="number" min="1" max="6" value="3" inputmode="numeric" /></label>
+          <button id="resizeBtn" type="button">Criar campos</button>
+          <button id="randomBtn" class="secondary" type="button">Gerar números</button>
+          <button id="clearBtn" class="ghost" type="button">Zerar</button>
+        </div>
 
-      <details class="import-card">
-        <summary>Importar matriz por JSON</summary>
-        <div class="import-body">
-          <label for="jsonInput">Cole uma matriz JSON</label>
-          <textarea id="jsonInput" rows="5" spellcheck="false" placeholder='[[1, 2], [3, 4]]'></textarea>
-          <div class="import-actions">
-            <button id="loadJsonBtn" class="secondary" type="button">Carregar texto</button>
-            <label class="file-button" for="jsonFile">Importar arquivo .json</label>
-            <input id="jsonFile" type="file" accept=".json,application/json" hidden />
+        <div id="linearGeneratorSetup" class="generator-card hidden">
+          <div class="generator-copy">
+            <strong>Gerar sistema a partir da solução</strong>
+            <p>Defina ou sorteie x, y, z... O laboratório cria coeficientes lineares e calcula o lado direito exatamente.</p>
           </div>
+          <div id="solutionInputs" class="solution-inputs"></div>
+          <div class="toolbar generator-actions">
+            <button id="randomizeSolutionBtn" class="secondary" type="button">🎲 Aleatorizar solução</button>
+            <button id="generateSystemBtn" type="button">Gerar sistema com estes valores</button>
+            <button id="revealGeneratedSolutionBtn" class="ghost hidden" type="button">Mostrar solução usada</button>
+          </div>
+          <div id="generatedEquationPreview" class="equation-preview"></div>
+          <div id="generatedSystemInfo" class="small-note"></div>
         </div>
-      </details>
 
-      <div id="matrixEditor" class="matrix-scroll" aria-label="Editor da matriz"></div>
-      <div class="toolbar">
-        <button id="startBtn" type="button">Usar esta matriz</button>
-        <button id="copyEditorBtn" class="secondary" type="button">⧉ Copiar JSON</button>
-        <span id="validationMsg" class="inline-msg" role="status"></span>
+        <details class="import-card">
+          <summary>Importar matriz por JSON</summary>
+          <div class="import-body">
+            <label for="jsonInput">Cole uma matriz JSON</label>
+            <textarea id="jsonInput" rows="5" spellcheck="false" placeholder='[[1, 2], [3, 4]]'></textarea>
+            <div class="import-actions">
+              <button id="loadJsonBtn" class="secondary" type="button">Carregar texto</button>
+              <label class="file-button" for="jsonFile">Importar arquivo .json</label>
+              <input id="jsonFile" type="file" accept=".json,application/json" hidden />
+            </div>
+          </div>
+        </details>
+
+        <div id="matrixEditor" class="matrix-scroll" aria-label="Editor da matriz"></div>
+        <div class="toolbar setup-actions">
+          <button id="startBtn" type="button">Usar esta matriz</button>
+          <button id="copyEditorBtn" class="secondary" type="button">⧉ Copiar JSON</button>
+          <span id="validationMsg" class="inline-msg" role="status"></span>
+        </div>
+      </div>
+
+      <div id="matrixCollectionSetup" class="hidden">
+        <div class="collection-head">
+          <div><strong>Matrizes da expressão</strong><p>Adicione quantas matrizes precisar. Elas recebem nomes A, B, C, D...</p></div>
+          <button id="addMatrixOperandBtn" type="button">+ Adicionar matriz</button>
+        </div>
+        <div id="matrixCollectionEditors" class="matrix-collection"></div>
+        <div class="toolbar setup-actions">
+          <button id="startMatrixCollectionBtn" type="button">Usar estas matrizes</button>
+          <button id="randomizeAllMatricesBtn" class="secondary" type="button">Gerar números em todas</button>
+          <button id="zeroAllMatricesBtn" class="ghost" type="button">Zerar todas</button>
+          <span id="matrixCollectionMsg" class="inline-msg" role="status"></span>
+        </div>
       </div>
     </section>
 
@@ -68,12 +107,7 @@
           <button class="workspace-mode active" data-workspace="study" type="button">ESTUDAR</button>
           <button class="workspace-mode" data-workspace="solve" type="button">RESOLVER</button>
         </div>
-        <label class="problem-select">Tipo
-          <select id="problemType">
-            <option value="determinant">Determinante</option>
-            <option value="inverse">Inversa</option>
-          </select>
-        </label>
+        <span id="workspaceTypeBadge" class="workspace-type-badge">Determinante</span>
       </div>
       <p id="workspaceDescription" class="workspace-description"></p>
     </section>
@@ -96,13 +130,7 @@
         <div><span>Sinal atual</span><strong id="swapSign">+1</strong></div>
       </div>
 
-      <div id="inverseStudyActions" class="context-actions hidden">
-        <button id="resetAugBtn" class="secondary" type="button">Recriar [A | I]</button>
-        <button id="verifyInverseBtn" class="secondary" type="button">Verificar A × A⁻¹</button>
-        <div id="inverseStatus" class="feedback info">Transforme o lado esquerdo em I.</div>
-      </div>
-
-      <div class="operation-card">
+      <div id="rowOperationCard" class="operation-card">
         <div class="mode-switch">
           <button class="operation-mode active" data-operation-mode="managed" type="button">Conferir operação</button>
           <button class="operation-mode" data-operation-mode="manual" type="button">Operação manual</button>
@@ -123,14 +151,17 @@
         </div>
 
         <p id="operationPreview" class="formula"></p>
+        <div class="operation-legend" aria-label="Legenda das cores"><span><i class="legend-pivot"></i>Pivô/origem</span><span><i class="legend-target"></i>Linha ou coluna alterada</span><span><i class="legend-edited"></i>Célula já digitada</span></div>
 
         <div id="manualEditorWrap" class="manual-wrap hidden">
           <div class="manual-head">
             <div>
               <strong>Seu resultado</strong>
-              <p>Campos alterados aparecem antes da conferência. Azul significa apenas “alterado”.</p>
+              <p>A linha/coluna alvo fica amarela; uma célula digitada ganha um amarelo mais forte. Use “restaurar” para corrigir apenas aquela casa.</p>
             </div>
           </div>
+          <button id="showCalculationGuideBtn" class="ghost hint-toggle" type="button">💡 Mostrar dica das contas</button>
+          <div id="calculationGuide" class="calculation-guide hidden"></div>
           <div id="manualEditor" class="matrix-scroll"></div>
           <div id="changedSummary" class="small-note"></div>
         </div>
@@ -146,28 +177,71 @@
         <div id="feedback" class="feedback info" role="status">Escolha uma operação para começar.</div>
       </div>
 
+      <div id="inverseStudyActions" class="context-actions hidden">
+        <div id="inverseStatus" class="feedback info">Transforme o lado esquerdo em I.</div>
+        <div class="toolbar bottom-confirm-actions">
+          <button id="resetAugBtn" class="secondary" type="button">Recriar [A | I]</button>
+          <button id="verifyInverseBtn" type="button">Confirmar se a matriz é inversa</button>
+        </div>
+      </div>
+
+      <div id="systemStudyActions" class="context-actions hidden">
+        <div id="systemStatus" class="feedback info">A última coluna representa os termos independentes.</div>
+        <div class="system-lesson-grid compact-lessons">
+          <article><strong>Matriz aumentada</strong><p>Os coeficientes ficam à esquerda e os resultados à direita da barra.</p></article>
+          <article><strong>Escalonamento</strong><p>Use as mesmas operações de linha do restante do laboratório para encontrar pivôs e zerar colunas.</p></article>
+          <article><strong>Solução garantida</strong><p>Se o sistema foi criado pelo gerador, a solução escolhida foi usada para calcular exatamente cada termo independente.</p></article>
+        </div>
+        <div class="solve-controls system-method-controls">
+          <label>Método de comparação
+            <select id="systemStudyMethod">
+              <option value="gauss">Gauss-Jordan / escalonamento</option>
+              <option value="cramer">Regra de Cramer</option>
+              <option value="addition">Adição</option>
+              <option value="substitution">Substituição</option>
+              <option value="comparison">Comparação</option>
+            </select>
+          </label>
+          <button id="analyzeSystemBtn" type="button">Mostrar resolução para comparar</button>
+        </div>
+        <div id="systemStudyOutput"></div>
+      </div>
+
+      <div id="matrixOperationsActions" class="context-actions hidden">
+        <div class="expression-intro">
+          <div>
+            <h3>Expressão com matrizes</h3>
+            <p>Use as letras das matrizes e escreva a conta como faria no papel. Exemplos de sintaxe: <code>A + B</code>, <code>2A + 4B*C</code>, <code>(A+B)*C</code>.</p>
+          </div>
+          <div class="expression-note">A multiplicação segue a ordem algébrica: escalares e produtos são resolvidos antes de soma/subtração.</div>
+        </div>
+        <div id="matrixReferences" class="matrix-reference-grid"></div>
+        <div class="expression-builder">
+          <label>Expressão
+            <input id="matrixExpressionInput" value="A + B" autocomplete="off" spellcheck="false" aria-label="Expressão matricial" />
+          </label>
+          <div class="toolbar expression-actions">
+            <button id="practiceMatrixExpressionBtn" type="button">Praticar passo a passo</button>
+            <button id="solveMatrixExpressionBtn" class="secondary" type="button">Mostrar resolução</button>
+          </div>
+        </div>
+        <div id="matrixOperationsOutput"></div>
+      </div>
+
       <section id="detStudyTools" class="study-tool-card">
         <div class="section-head compact-head">
           <div>
-            <h3>Laplace — continuar a mesma conta</h3>
-            <p>Escolha uma linha ou coluna e reduza diretamente. O coeficiente e o sinal ficam acumulados até o resultado final.</p>
+            <h3>Continuar o determinante</h3>
+            <p>Use Laplace quantas vezes quiser: pare em 3×3 para Sarrus ou continue até 1×1.</p>
           </div>
         </div>
-
-        <div id="laplaceQuickControls" class="laplace-quick-controls">
-          <label>Expandir por
-            <select id="laplaceQuickAxis">
-              <option value="row">Linha</option>
-              <option value="col">Coluna</option>
-            </select>
-          </label>
-          <label>Escolha
-            <select id="laplaceQuickIndex"></select>
-          </label>
-          <button id="applyLaplaceBtn" type="button">Expandir por Laplace</button>
-          <button id="studySarrusBtn" class="secondary" type="button">Resolver 3×3 com Sarrus</button>
+        <div class="toolbar">
+          <button id="startLaplaceStudyBtn" type="button">Continuar com Expansão de Laplace</button>
+          <button id="suggestLaplaceBtn" class="secondary" type="button">Sugerir melhor linha/coluna</button>
+          <button id="studySarrusBtn" class="secondary" type="button">Usar Sarrus nesta 3×3</button>
         </div>
         <div id="laplaceSuggestion" class="small-note"></div>
+        <div id="detMatrixContext" class="det-matrix-context"></div>
         <div id="laplaceStudy" class="det-visuals"></div>
       </section>
 
@@ -175,7 +249,7 @@
         <div class="section-head compact-head">
           <div>
             <h3>Histórico da sessão</h3>
-            <p>Operações, expansões de Laplace e resoluções por Sarrus ficam registradas na mesma linha do tempo e no JSON.</p>
+            <p>Cada passo armazena a matriz anterior, a nova matriz e a operação estruturada.</p>
           </div>
           <div class="toolbar compact-toolbar">
             <button id="copyHistoryBtn" class="secondary" type="button">⧉ Copiar histórico JSON</button>
@@ -222,12 +296,25 @@
         <button id="solveInverseBtn" type="button">Resolver inversa por Gauss-Jordan</button>
       </div>
 
+      <div id="solveSystemControls" class="solve-controls hidden">
+        <label>Método
+          <select id="solveSystemMethod">
+            <option value="gauss">Gauss-Jordan / escalonamento</option>
+            <option value="cramer">Regra de Cramer</option>
+            <option value="addition">Adição (2×2)</option>
+            <option value="substitution">Substituição (2×2)</option>
+            <option value="comparison">Comparação (2×2)</option>
+          </select>
+        </label>
+        <button id="solveSystemBtn" type="button">Resolver sistema por Gauss-Jordan</button>
+      </div>
+
       <div id="solveOutput"></div>
     </section>
   </main>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
-  <footer>Laboratório de Matrizes 2.3 • cálculos racionais exatos no navegador</footer>
+  <footer>Laboratório de Matrizes • cálculos racionais exatos no navegador</footer>
 
   <script src="math.js"></script>
   <script src="history.js"></script>

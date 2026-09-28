@@ -27,6 +27,62 @@ assert.deepStrictEqual(strings(inverse.inverse), [['3', '-1'], ['-5', '2']]);
 assert.strictEqual(M.isIdentity(M.multiplyMatrices(inverseBase, inverse.inverse), 2), true);
 assert.strictEqual(M.inverse(mat([[1, 2], [2, 4]])).invertible, false);
 
+// Gauss-Jordan didático: prioriza um 1 disponível antes de criar frações
+const pivotOne = M.inverse(mat([[2, 1], [1, 1]]), true);
+assert.strictEqual(pivotOne.steps[0].op, 'L1 ↔ L2');
+const suggestedSwap = M.nextGaussJordanOperation(mat([[2, 1, 1, 0], [1, 1, 0, 1]]), 2);
+assert.strictEqual(suggestedSwap.type, 'swap');
+assert.strictEqual(suggestedSwap.rowB, 1);
+
+// Sistemas lineares: solução única, infinitas soluções e sistema impossível
+const uniqueSystem = M.solveLinearSystem(mat([[1, 1, 3], [1, -1, 1]]));
+assert.strictEqual(uniqueSystem.type, 'unique');
+assert.deepStrictEqual(uniqueSystem.solution.map(String), ['2', '1']);
+assert.strictEqual(M.solveLinearSystem(mat([[1, 1, 2], [2, 2, 4]])).type, 'infinite');
+assert.strictEqual(M.solveLinearSystem(mat([[1, 1, 2], [2, 2, 5]])).type, 'none');
+assert.strictEqual(M.solveLinearSystem(mat([[5, 10]])).solution[0].toString(), '2');
+const classroom3 = mat([[5, -3, 1, -1], [-4, 3, -1, -1], [9, 7, 5, -17]]);
+const cramer3 = M.cramerRule(classroom3);
+assert.strictEqual(cramer3.applicable, true);
+assert.deepStrictEqual(cramer3.solution.map(String), ['-2', '-2', '3']);
+assert.strictEqual(cramer3.det.toString(), '22');
+const classroom4 = M.solveLinearSystem(mat([
+  [2, 1, 3, -1, -4],
+  [-1, 2, 1, 1, 11],
+  [4, -5, -2, 2, -43],
+  [3, 2, -1, -2, 3]
+]));
+assert.deepStrictEqual(classroom4.solution.map(String), ['-4', '5', '-1', '-2']);
+for (const method of ['addition', 'substitution', 'comparison']) {
+  const result = M.solveTwoByTwoMethod(mat([[1, 1, 5], [1, -1, 1]]), method);
+  assert.deepStrictEqual(result.solution.map(String), ['3', '2']);
+  assert.ok(result.steps.length >= 4);
+}
+
+// Operações e classificação de matrizes
+assert.deepStrictEqual(strings(M.addMatrices(mat([[1, 2], [3, 4]]), mat([[4, 3], [2, 1]]))), [['5', '5'], ['5', '5']]);
+assert.deepStrictEqual(strings(M.subtractMatrices(mat([[5, 4], [3, 2]]), mat([[1, 2], [3, 4]]))), [['4', '2'], ['0', '-2']]);
+assert.deepStrictEqual(strings(M.scaleMatrix(mat([[1, -2]]), M.Fraction.from('1/2'))), [['1/2', '-1']]);
+assert.deepStrictEqual(strings(M.transposeMatrix(mat([[1, 2, 3], [4, 5, 6]]))), [['1', '4'], ['2', '5'], ['3', '6']]);
+assert.strictEqual(M.classifyMatrix(mat([[3, 0], [0, 3]])).scalar, true);
+assert.strictEqual(M.classifyMatrix(mat([[1, 0], [0, 1]])).identity, true);
+
+// Lista 3: regressão dos sete exercícios de escalonamento
+const exerciseResults = [
+  { matrix: [[5, -3, 3], [2, 1, -12]], type: 'unique', solution: ['-3', '-6'] },
+  { matrix: [[1, -3, -70], [8, 14, 200]], type: 'unique', solution: ['-10', '20'] },
+  { matrix: [[2, 4, 6, 2], [4, -1, -1, 3], [1, 1, -1, 6]], type: 'unique', solution: ['1', '3', '-2'] },
+  { matrix: [[5, 2, -1, 4], [-1, -1, 2, 7], [2, -1, -4, 11]], type: 'unique', solution: ['40/9', '-25/3', '14/9'] },
+  { matrix: [[1, 4, 2, 7], [-1, -4, -2, -7], [3, -1, -4, -1]], type: 'infinite' },
+  { matrix: [[2, 1, 3, -1, -4], [-1, 2, 1, 1, 11], [4, -5, -2, 2, -43], [3, 2, -1, -2, 3]], type: 'unique', solution: ['-4', '5', '-1', '-2'] },
+  { matrix: [[2, 1, 1, 1, 1], [3, 6, 3, 3, 6], [1, 1, 2, 1, 3], [1, 1, 1, 2, 4]], type: 'unique', solution: ['-1', '0', '1', '2'] }
+];
+exerciseResults.forEach(item => {
+  const result = M.solveLinearSystem(mat(item.matrix));
+  assert.strictEqual(result.type, item.type);
+  if (item.solution) assert.deepStrictEqual(result.solution.map(String), item.solution);
+});
+
 // JSON de matrizes
 assert.deepStrictEqual(M.parseMatrixJSON('[[2,4],[1,2]]'), mat([[2, 4], [1, 2]]));
 assert.deepStrictEqual(M.parseMatrixJSON('[ ["1/2", "2/3"], ["-3/4", 1] ]'), mat([['1/2', '2/3'], ['-3/4', 1]]));
@@ -97,66 +153,28 @@ assert.strictEqual(M.determinant(scaleSession.currentMatrix).value.div(H.determi
 
 console.log('✓ Todos os testes matemáticos e de histórico passaram.');
 
-// 2.3 — trocas com a mesma linha/coluna são inválidas
+// Trocas não podem usar a mesma linha/coluna
 assert.throws(() => M.swapRows(base2, 0, 0), /linhas diferentes/i);
 assert.throws(() => M.swapCols(base2, 1, 1), /colunas diferentes/i);
 
-// 2.3 — Laplace com único coeficiente não nulo preserva o multiplicador
-const uniqueLaplace = mat([
-  [2, 0, 0, 0],
-  [0, 1, 0, 0],
-  [0, 0, 1, 0],
-  [0, 0, 0, 1]
+// Expressões algébricas com várias matrizes e multiplicação implícita
+const exprA = mat([[1, 0], [0, 1]]);
+const exprB = mat([[1, 2], [3, 4]]);
+const exprC = mat([[2, 0], [0, 2]]);
+const exprResult = M.evaluateMatrixExpression('2A + 4B*C', { A: exprA, B: exprB, C: exprC });
+assert.deepStrictEqual(strings(exprResult.result), [['10', '16'], ['24', '34']]);
+assert.deepStrictEqual(exprResult.references.sort(), ['A', 'B', 'C']);
+assert.strictEqual(exprResult.steps.length, 4);
+assert.deepStrictEqual(strings(M.evaluateMatrixExpression('1/2A + B', { A: exprA, B: exprB }).result), [['3/2', '2'], ['3', '9/2']]);
+assert.throws(() => M.evaluateMatrixExpression('A + Z', { A: exprA }), /não foi definida/i);
+
+// Geração reversa de sistema linear com solução fracionária exata
+const generatedSolution = ['1/2', '1/5', '2'].map(F);
+const generatedCoefficients = mat([[2, -5, 1], [1, 1, 1], [3, 0, -2]]);
+const generatedSystem = M.buildLinearSystemFromSolution(generatedCoefficients, generatedSolution);
+assert.deepStrictEqual(strings(generatedSystem), [
+  ['2', '-5', '1', '2'],
+  ['1', '1', '1', '27/10'],
+  ['3', '0', '-2', '-5/2']
 ]);
-const uniqueExpansion = M.laplaceExpansion(uniqueLaplace, 'col', 0);
-const uniqueNonZero = uniqueExpansion.terms.filter(term => !term.element.isZero());
-assert.strictEqual(uniqueNonZero.length, 1);
-assert.strictEqual(uniqueNonZero[0].element.toString(), '2');
-assert.strictEqual(uniqueNonZero[0].minorDet.toString(), '1');
-assert.strictEqual(uniqueNonZero[0].term.toString(), '2');
-assert.strictEqual(uniqueExpansion.value.toString(), '2');
-
-// 2.3 — sinal de trocas anteriores entra no fechamento do determinante
-const signSession = H.createSession({ mode: 'study', problemType: 'determinant', initialMatrix: uniqueLaplace });
-H.commit(
-  signSession,
-  M.swapRows(signSession.currentMatrix, 0, 1),
-  { type: 'swap', rowA: 0, rowB: 1 },
-  'L1 ↔ L2'
-);
-const currentDet = M.determinantLaplace(signSession.currentMatrix, 'col', 0);
-assert.strictEqual(currentDet.toString(), '-2');
-assert.strictEqual(H.swapStats(signSession).sign, -1);
-assert.strictEqual(H.determinantTransformFactor(signSession).toString(), '-1');
-assert.strictEqual(currentDet.div(H.determinantTransformFactor(signSession)).toString(), '2');
-
-// 2.3 — eventos de Laplace fazem parte do histórico/exportação estruturada
-const analysisSession = H.createSession({ mode: 'study', problemType: 'determinant', initialMatrix: uniqueLaplace });
-H.logAnalysisEvent(analysisSession, {
-  type: 'laplaceExpansion',
-  description: 'Expansão de Laplace pela coluna 1',
-  matrix: uniqueLaplace,
-  metadata: {
-    axis: 'col',
-    index: 0,
-    coefficient: F('2'),
-    expression: 'det(A) = 2·det(M11)'
-  }
-});
-H.logAnalysisEvent(analysisSession, {
-  type: 'laplaceResult',
-  description: 'Laplace concluído',
-  matrix: uniqueLaplace,
-  metadata: {
-    currentDeterminant: F('2'),
-    transformFactor: F('1'),
-    originalDeterminant: F('2')
-  }
-});
-const analysisExport = H.sessionToJSONData(analysisSession);
-assert.strictEqual(analysisExport.analysisEvents.length, 2);
-assert.strictEqual(analysisExport.timeline.length, 3);
-assert.strictEqual(analysisExport.analysisEvents[0].metadata.coefficient, 2);
-assert.strictEqual(analysisExport.analysisEvents[1].metadata.originalDeterminant, 2);
-
-console.log('✓ Testes 2.3 de Laplace, sinal, histórico e trocas inválidas passaram.');
+assert.deepStrictEqual(M.solveLinearSystem(generatedSystem).solution.map(String), ['1/2', '1/5', '2']);

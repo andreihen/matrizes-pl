@@ -56,22 +56,23 @@
   }
 
   function wireSmartZeroInput(input) {
-    const selectZero = () => {
-      if (input.value === '0') input.select();
+    const selectValue = () => {
+      if (!input.readOnly) input.select();
     };
-    input.addEventListener('focus', selectZero);
+    input.addEventListener('focus', selectValue);
     input.addEventListener('pointerup', event => {
-      if (input.value === '0') {
+      if (!input.readOnly) {
         event.preventDefault();
         input.select();
       }
     });
     input.addEventListener('beforeinput', event => {
-      if (input.value !== '0') return;
       if (!event.inputType.startsWith('insert') || event.data == null) return;
-      event.preventDefault();
-      input.value = event.data;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
+      if (!/^[0-9+\-/]+$/.test(event.data)) event.preventDefault();
+    });
+    input.addEventListener('input', () => {
+      const sanitized = input.value.replace(/[^0-9+\-/]/g, '');
+      if (sanitized !== input.value) input.value = sanitized;
     });
   }
 
@@ -181,7 +182,7 @@
         if (state) {
           element.classList.add(`${state}-cell`);
           element.dataset.cellState = state;
-          element.title = state === 'changed' ? 'Valor alterado' : state === 'correct' ? 'Alteração correta' : state === 'error' ? 'Valor incorreto' : 'Célula destacada';
+          element.title = state === 'changed' ? 'Valor alterado' : state === 'correct' ? 'Alteração correta' : state === 'error' ? 'Valor incorreto' : state === 'pivot' ? 'Linha ou coluna do pivô' : state === 'target' ? 'Linha ou coluna que será alterada' : 'Célula destacada';
         }
         rowElement.appendChild(element);
       });
@@ -225,6 +226,7 @@
       const col = index % cols;
       input.classList.remove('changed-cell', 'correct-cell', 'error-cell');
       input.removeAttribute('data-cell-state');
+      if (input.readOnly) return;
       try {
         const current = M.Fraction.from(input.value);
         if (!current.equals(originalMatrix[row][col])) {
